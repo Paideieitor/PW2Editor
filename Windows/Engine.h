@@ -268,6 +268,8 @@ public:
 	void BuildPatch();
 	void UninstallPatch();
 
+	void Quit(const string& msg) { quit = msg; }
+
 protected:
 
 	virtual ReturnState RenderGUI() override;
@@ -296,6 +298,8 @@ private:
 	Pokemon* currentPkm = nullptr;
 	ItemData* currentItem = nullptr;
 	MoveData* currentMove = nullptr;
+
+	string quit = string();
 
 	friend class Module;
 };
@@ -349,5 +353,7 @@ private:
 
 #define PATCH_SETTINGS_FILE "Builder\\buildSettings.txt"
 #define PATCH_INSTALLED_FILE "Builder\\install.log"
+
+#define PATCH_QUIT_MESSAGE "After using the patcher the engine must shut down. The changes will be loaded when it starts again."
 
 #endif // _ENGINE_H

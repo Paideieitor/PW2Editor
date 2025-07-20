@@ -69,7 +69,10 @@ ReturnState MenuBar::RenderGUI()
 				patcherOptions = !patcherOptions;
 				if (patcherOptions)
 				{
-					string patchSettingsPath = DEV_PATCH_DIR; 
+					string patchSettingsPath = DEPLOY_PATCH_DIR; 
+					if (!PathExists(patchSettingsPath))
+						patchSettingsPath = DEV_PATCH_DIR;
+
 					patchSettingsPath = ConcatPath(patchSettingsPath, "settings.h");
 					LoadKlang(patchSettings, patchSettingsPath);
 				}
@@ -82,13 +85,17 @@ ReturnState MenuBar::RenderGUI()
 				buildText = "Rebuild";
 			if (ImGui::MenuItem(buildText.c_str()))
 			{
+				engine->Save();
 				engine->BuildPatch();
+				engine->Quit(PATCH_QUIT_MESSAGE);
 			}
 
 			ImGui::BeginDisabled(!patchInstalled);
 			if (ImGui::MenuItem("Uninstall"))
 			{
+				engine->Save();
 				engine->UninstallPatch();
+				engine->Quit(PATCH_QUIT_MESSAGE);
 			}
 			ImGui::EndDisabled();
 

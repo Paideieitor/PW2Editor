@@ -78,6 +78,17 @@ Engine::~Engine()
 
 ReturnState Engine::RenderGUI()
 {
+	if (!quit.empty())
+	{
+		ReturnState exitState = OK;
+		ImGui::Begin("The engine needs to shut down");
+		ImGui::Text(quit);
+		if (ImGui::Button("OK"))
+			exitState = STOP;
+		ImGui::End();
+		return exitState;
+	}
+
 	if (GetCurrentPokemon() == nullptr)
 		return ERROR;
 
