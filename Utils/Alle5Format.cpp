@@ -1,6 +1,6 @@
 ﻿#include <map>
 
-#include "Log.h"
+#include "System.h"
 
 #include "Utils/Alle5Format.h"
 #include "Utils/FileUtils.h"

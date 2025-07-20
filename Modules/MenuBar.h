@@ -5,7 +5,7 @@
 
 #include "Modules/Module.h"
 
-struct Patch;
+#include "Utils/KlangFormat.h"
 
 class MenuBar : public Module
 {
@@ -21,7 +21,12 @@ public:
 
 private:
 
+	bool patcherOptions = false;
+	Klang patchSettings = Klang();
+
 	void ChangeGroup(u32 newGroup);
+	
+	void PatcherOptions();
 };
 
 #endif // _MENU_BAR_H

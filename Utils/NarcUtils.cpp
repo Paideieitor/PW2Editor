@@ -1,6 +1,6 @@
 #include <stack>
 
-#include "Log.h"
+#include "System.h"
 
 #include "Utils/NarcUtils.h"
 #include "Utils/FileUtils.h"

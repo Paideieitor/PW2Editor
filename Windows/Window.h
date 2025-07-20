@@ -16,7 +16,7 @@
 #include "Externals/imgui/imgui_stdlib.h"
 
 #include "Globals.h"
-#include "Log.h"
+#include "System.h"
 
 class Window
 {

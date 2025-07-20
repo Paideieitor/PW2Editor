@@ -1,6 +1,8 @@
 #ifndef _LOG_H
 #define _LOG_H
 
+#include <string>
+
 #include "Globals.h"
 
 enum LogLevel : u8

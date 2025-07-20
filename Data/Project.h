@@ -38,6 +38,8 @@ struct Project
 	u32 selectedMoveIdx = DEFAULT_SELECTED_MOVE_IDX;
 
 	u32 maxEvents = DEFAULT_MAX_EVENTS;
+
+	u32 customFeatures = DEFAULT_CUSTOM_FEATURES;
 };
 
 ReturnState LoadProjectSettings(Project& project, const string& name);

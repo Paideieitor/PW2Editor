@@ -1,6 +1,6 @@
 #include <filesystem>
 
-#include "Log.h"
+#include "System.h"
 
 #include "Utils/FileUtils.h"
 
@@ -127,6 +127,15 @@ void NormalizePathSeparator(string& path)
 	for (u32 idx = 0; idx < path.length(); ++idx)
 		if (path[idx] == NOT_PATH_SEPARATOR)
 			path[idx] = PATH_SEPARATOR;
+}
+
+string ConcatPath(const string& path, const string& concat)
+{
+	if (path.empty())
+		return concat;
+	if (concat.empty())
+		return path;
+	return path + PATH_SEPARATOR + concat;
 }
 
 string RemoveFileFromPath(const string& path)

@@ -1,8 +1,13 @@
+#include <stdio.h>
+#include <iostream>
+
 #include "Windows/Wizard.h"
 #include "Windows/Engine.h"
 
-int main(int argc, char* argv[])
+int WinMain(int argc, char* argv[])
 {
+	CreateFolder("Logs");
+
 	Project project;
 	ReturnState state = OK;
 	{
@@ -24,8 +29,11 @@ int main(int argc, char* argv[])
 		delete wizard;
 	}
 	if (state == EXIT)
+	{
+		Log(INFO, "Wizard closed");
 		return 0;
-
+	}
+	
 	Engine* engine = new Engine(&project);
 	state = engine->Init((int)project.width, (int)project.height, ENGINE_NAME, project.font, (float)project.fontSize);
 	if (state != OK)
@@ -38,10 +46,11 @@ int main(int argc, char* argv[])
 		state = engine->Update();
 		if (state == EXIT)
 		{
-			
+	
 		}
 	}
 	delete engine;
-
+	
+	Log(INFO, "Engine closed");
 	return 0;
 }

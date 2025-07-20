@@ -11,6 +11,8 @@
 
 #define MAKE_FILE_PATH(path, fileID) path + PATH_SEPARATOR + to_string(fileID)
 
+#define PATH_FORMAT(path) (string("\"") + path + string("\""))
+
 // Returns true if the path exists in the file system, false otherwise
 bool PathExists(const string& path);
 // Returns true if the path leads to a file, false otherwise
@@ -38,6 +40,8 @@ vector<string> GetFolderElementList(const string& path);
 // Changes the path separator to the Klinklang Engine standarized one
 void NormalizePathSeparator(string& path);
 
+// Concatenate 2 strings with a path separator
+string ConcatPath(const string& path, const string& concat);
 // Returns the given path string without the file portion
 string RemoveFileFromPath(const string& path);
 // Returns the file portion of the given path string

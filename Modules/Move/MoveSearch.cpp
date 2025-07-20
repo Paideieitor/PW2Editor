@@ -77,21 +77,21 @@ ReturnState MoveSearch::RenderGUI()
 		Search();
 	}
 
-	ImGui::Separator();
-
-	if (ImGui::Button("Add Move"))
-	{
-		engine->AddMove();
-		Search();
-
-		u32 moveIdx = (u32)engine->moves.size() - 1;
-		SIMPLE_REVERSE_EVENT(SELECT_MOVE_EVENT,
-			make_pair(engine->project->selectedMoveIdx, selectedIdx),
-			make_pair(moveIdx, -1));
-
-		engine->SetCurrentMove(moveIdx);
-		selectedIdx = -1;
-	}
+	//ImGui::Separator();
+	//
+	//if (ImGui::Button("Add Move"))
+	//{
+	//	engine->AddMove();
+	//	Search();
+	//
+	//	u32 moveIdx = (u32)engine->moves.size() - 1;
+	//	SIMPLE_REVERSE_EVENT(SELECT_MOVE_EVENT,
+	//		make_pair(engine->project->selectedMoveIdx, selectedIdx),
+	//		make_pair(moveIdx, -1));
+	//
+	//	engine->SetCurrentMove(moveIdx);
+	//	selectedIdx = -1;
+	//}
 
 	ImGui::End();
 	return OK;

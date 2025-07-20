@@ -31,6 +31,7 @@ using namespace std;
 	#define DEFAULT_SELECTED_ITEM_IDX 0u
 	#define DEFAULT_SELECTED_MOVE_IDX 0u
 	#define DEFAULT_MAX_EVENTS 2000u
+	#define DEFAULT_CUSTOM_FEATURES false
 
 #define PROJECTS_PATH "Projects"
 

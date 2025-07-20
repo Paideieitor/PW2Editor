@@ -1,4 +1,4 @@
-#include "Log.h"
+#include "System.h"
 
 #include "Utils/KlangFormat.h"
 #include "Utils/FileUtils.h"
@@ -59,6 +59,7 @@ bool KlangVar::SetValue(int value)
 	if (!LoadEmptyFileStream(fileStream))
 		return false;
 
+	bool found = false;
 	while (!feof(klangFile))
 	{
 		char line[1024];
@@ -66,7 +67,7 @@ bool KlangVar::SetValue(int value)
 		string lineStr = line;
 
 		int start = (int)lineStr.find(this->name);
-		if (start >= 0)
+		if (start >= 0 && !found)
 		{
 			this->value = value;
 
@@ -80,9 +81,12 @@ bool KlangVar::SetValue(int value)
 
 			lineStr.erase(start, end - start);
 			lineStr.insert(start, to_string(value));
+
+			found = true;
 		}
 
-		FileStreamBufferWriteBack(fileStream, (u8*)lineStr.c_str(), (u32)lineStr.length());
+		if (!feof(klangFile))
+			FileStreamBufferWriteBack(fileStream, (u8*)lineStr.c_str(), (u32)lineStr.length());
 	}
 	fclose(klangFile);
 
@@ -125,7 +129,7 @@ bool Klang::Load(Klang& klang, const string& path)
 		}
 
 		KlangVar var = GetKlangVar(lineStr, (u32)start + (u32)strlen(KLANG_VAR_PREFIX));
-		if (var.name == ignoreDefine)
+		if (var.name.empty() || var.name == ignoreDefine)
 			continue;
 		var.path = klang.path;
 
@@ -176,9 +180,14 @@ KlangVar Klang::GetKlangVar(const string& line, u32 offset)
 		value.push_back(line[idx]);
 	}
 
+	if (value.empty())
+		return KlangVar(string());
+
 	KlangVar output(name);
-	if (value.length())
-		output.value = stoi(value);
+	output.value = stoi(value);
+	if (output.value != 0 && output.value != 1)
+		return KlangVar(string());
+		
 	return output;
 }
 

@@ -264,6 +264,10 @@ public:
 
 	void AddMove();
 
+	void InstallPatch(string settingsPath);
+	void BuildPatch();
+	void UninstallPatch();
+
 protected:
 
 	virtual ReturnState RenderGUI() override;
@@ -332,5 +336,18 @@ private:
 
 #define SIMPLE_REVERSE_EVENT(subType, value, newValue) engine->AddReverseEvent(moduleIdx, subType, value, newValue, false)
 #define SAVE_CHECK_REVERSE_EVENT(subType, value, newValue, fileID, comparator) engine->AddReverseEvent(moduleIdx, subType, value, newValue, engine->AddSaveEvent(moduleIdx, fileID, comparator))
+
+#define DEV_TOOLS_DIR "..\\Tools"
+#define DEV_BUILDER_DIR ".."
+#define DEV_PATCH_DIR "..\\Code\\PW2Code"
+
+#define DEPLOY_TOOLS_DIR "Patcher\\Tools"
+#define DEPLOY_BUILDER_DIR "Patcher"
+#define DEPLOY_PATCH_DIR "Patcher\\PW2Code"
+
+#define PATCH_BUILDER_FILE "PW2Builder.exe"
+
+#define PATCH_SETTINGS_FILE "Builder\\buildSettings.txt"
+#define PATCH_INSTALLED_FILE "Builder\\install.log"
 
 #endif // _ENGINE_H

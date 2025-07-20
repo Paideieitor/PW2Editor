@@ -1,6 +1,6 @@
 #include <algorithm>
 
-#include "Log.h"
+#include "System.h"
 
 #include "Utils/FileUtils.h"
 #include "Utils/NarcUtils.h"
@@ -42,6 +42,10 @@ Engine::Engine(Project* const project) : project(project)
 		Log(CRITICAL, "Error starting Engine!");
 		return;
 	}
+
+	string buildSettingsPath = ConcatPath(project->path, PATCH_SETTINGS_FILE);
+	if (!PathExists(buildSettingsPath))
+		InstallPatch(buildSettingsPath);
 
 	// Engine
 	modules.emplace_back(new MenuBar(this, ENGINE_GROUP));
@@ -157,6 +161,86 @@ void Engine::AddMove()
 	LoadFileStream(moveAnims[moveIdx], MAKE_FILE_PATH(moveAnimPath, 1));
 
 	SendGroupEvent(MOVE_GROUP);
+}
+
+void Engine::InstallPatch(string settingsPath)
+{
+	string toolsDir = DEPLOY_TOOLS_DIR;
+	if (!PathExists(toolsDir))
+		toolsDir = DEV_TOOLS_DIR;
+
+	string buildSettings = "SET PROJECT_DIR=";
+	buildSettings += project->ctrMapProjectPath + PATH_SEPARATOR;
+	buildSettings += '\n';
+
+	buildSettings += "SET CTRMAP_DIR=";
+	buildSettings += toolsDir + PATH_SEPARATOR;
+	buildSettings += '\n';
+
+	buildSettings += "SET ARM_NONE_EABI_DIR=";
+	buildSettings += ConcatPath(toolsDir, "Arm-None-Eabi\\bin\\");
+	buildSettings += '\n';
+
+	buildSettings += "SET JAVA_DIR=";
+
+	FileStream file;
+	LoadEmptyFileStream(file);
+
+	FileStreamBufferWriteBack(file, (u8*)buildSettings.c_str(), (u32)buildSettings.size());
+
+	SaveFileStream(file, settingsPath);
+}
+
+string GetBuilderPath()
+{
+	string builderPath = DEPLOY_BUILDER_DIR;
+	if (PathExists(builderPath))
+		return builderPath;
+
+	builderPath = DEV_BUILDER_DIR;
+#ifdef _WIN64
+	builderPath = ConcatPath(builderPath, "x64");
+#else
+	builderPath = ConcatPath(builderPath, "x86");
+#endif
+	builderPath = ConcatPath(builderPath, "Release");
+	return builderPath;
+}
+
+void Engine::BuildPatch()
+{
+	string builderPath = GetBuilderPath();
+	string patchPath = DEPLOY_PATCH_DIR;
+	if (!PathExists(patchPath))
+		patchPath = DEV_PATCH_DIR;
+
+	string command = PATH_FORMAT(ConcatPath(builderPath, PATCH_BUILDER_FILE)) + " ";
+	command += "-rebuild ";
+	command += PATH_FORMAT(patchPath) + " ";
+	command += "-whitelist-all ";
+	command += "-custom-build ";
+	command += PATH_FORMAT(project->path) + " ";
+	command += "-pause";
+
+	system(PATH_FORMAT(command).c_str());
+}
+
+void Engine::UninstallPatch()
+{
+	string builderPath = GetBuilderPath();
+	string patchPath = DEPLOY_PATCH_DIR;
+	if (!PathExists(patchPath))
+		patchPath = DEV_PATCH_DIR;
+
+	string command = PATH_FORMAT(ConcatPath(builderPath, "PW2Builder.exe")) + " ";
+	command += "-uninstall ";
+	command += PATH_FORMAT(patchPath) + " ";
+	command += "-custom-build ";
+	command += PATH_FORMAT(project->path) + " ";
+	command += "-keep-settings ";
+	command += "-pause";
+
+	system(PATH_FORMAT(command).c_str());
 }
 
 void LoadText(const string& narcPath, u32 fileID, const string& outputPath, vector<u16>& missingTextFiles)

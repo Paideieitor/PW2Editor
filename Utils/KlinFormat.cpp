@@ -1,6 +1,6 @@
 #include <map>
 
-#include "Log.h"
+#include "System.h"
 
 #include "Utils/KlinFormat.h"
 #include "Utils/StringUtils.h"

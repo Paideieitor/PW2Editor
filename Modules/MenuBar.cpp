@@ -62,36 +62,45 @@ ReturnState MenuBar::RenderGUI()
 			ImGui::EndMenu();
 		}
 
-		/*ImGui::BeginDisabled(!engine->patchesEnabled);
 		if (ImGui::BeginMenu("Patcher"))
 		{
-			if (ImGui::MenuItem("Build", "Ctrl+B"))
-				engine->BuildPatches();
-
-			if (ImGui::MenuItem("Build Settings", "Ctrl+N"))
-				engine->patcherSettingsMenu = !engine->patcherSettingsMenu;
-				
-			if (ImGui::MenuItem("Reload", "Ctrl+R"))
-				engine->LoadPatches(true);
-				
-			ImGui::Separator();
-			ImGui::Text("Patches:");
-
-			for (u32 patchIdx = 0; patchIdx < (u32)engine->patches.size(); ++patchIdx)
+			if (ImGui::MenuItem("Options"))
 			{
-				Patch& patch = engine->patches[patchIdx];
-				string state = " ";
-				if (patch.enabled)
-					state = "Enabled";
-				if (ImGui::MenuItem(patch.name.c_str(), state.c_str()))
-					patch.open = !patch.open;
+				patcherOptions = !patcherOptions;
+				if (patcherOptions)
+				{
+					string patchSettingsPath = DEV_PATCH_DIR; 
+					patchSettingsPath = ConcatPath(patchSettingsPath, "settings.h");
+					LoadKlang(patchSettings, patchSettingsPath);
+				}
 			}
+
+			bool patchInstalled = PathExists(ConcatPath(engine->project->path, PATCH_INSTALLED_FILE));
+
+			string buildText = "Build";
+			if (patchInstalled)
+				buildText = "Rebuild";
+			if (ImGui::MenuItem(buildText.c_str()))
+			{
+				engine->BuildPatch();
+			}
+
+			ImGui::BeginDisabled(!patchInstalled);
+			if (ImGui::MenuItem("Uninstall"))
+			{
+				engine->UninstallPatch();
+			}
+			ImGui::EndDisabled();
 
 			ImGui::EndMenu();
 		}
-		ImGui::EndDisabled();*/
 
 		ImGui::EndMainMenuBar();
+	}
+
+	if (patcherOptions)
+	{
+		PatcherOptions();
 	}
 			
 	return OK;
@@ -112,4 +121,42 @@ void MenuBar::ChangeGroup(u32 newGroup)
 {
 	SIMPLE_REVERSE_EVENT(0, engine->project->group, newGroup);
 	engine->project->group = newGroup;
+}
+
+void PatchSetting(KlangVar& var, bool isChild)
+{
+	string text;
+	if (isChild)
+		text += "    ";
+	text += var.name;
+
+	ImGui::Text(text);
+	ImGui::SameLine();
+
+	bool value = (bool)var.Value();
+	if (ImGui::Checkbox((string("##") + var.name).c_str(), &value))
+		var.SetValue((int)value);
+}
+
+void MenuBar::PatcherOptions()
+{
+	ImGui::Begin("Patcher Options", &patcherOptions);
+
+	for (u32 setting = 0; setting < (u32)patchSettings.vars.size(); ++setting)
+	{
+		KlangVar& parent = patchSettings.vars[setting];
+		PatchSetting(parent, false);
+
+		ImGui::BeginDisabled(parent.Value() == 0);
+		for (u32 child = 0; child < (u32)parent.dependentVars.size(); ++child)
+		{
+			KlangVar& dependent = parent.dependentVars[child];
+			PatchSetting(dependent, true);
+		}
+		ImGui::EndDisabled();
+
+		ImGui::Separator();
+	}
+
+	ImGui::End();
 }

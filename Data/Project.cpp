@@ -1,4 +1,4 @@
-#include "Log.h"
+#include "System.h"
 
 #include "Utils/FileUtils.h"
 #include "Utils/KlinFormat.h"
@@ -73,6 +73,8 @@ ReturnState LoadProjectSettings(Project& project, const string& name)
 	
 	GetKlinValueU32(klin, KLIN_MAX_EVENTS, project.maxEvents);
 
+	GetKlinValueU32(klin, KLIN_CUSTOM_FEATURES, project.customFeatures);
+
 	ReleaseKlin(klin);
     return OK;
 }
@@ -114,6 +116,8 @@ ReturnState SaveProjectSettings(const Project& project)
 	SetKlinValueU32(klin, KLIN_SELECTED_MOVE_IDX, project.selectedMoveIdx);
 
 	SetKlinValueU32(klin, KLIN_MAX_EVENTS, project.maxEvents);
+
+	SetKlinValueU32(klin, KLIN_CUSTOM_FEATURES, (u32)project.customFeatures);
 
 	SaveKlin(klin, project.settingsPath, true);
 	return OK;
