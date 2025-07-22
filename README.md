@@ -14,8 +14,8 @@ The Patcher tool can install the most up-to-date features from PW2Code, this fea
 
 ## How to install
 - Install [Java](https://www.java.com/es/download/manual.jsp)
-- This editor attaches to your CTRMap project, if you don't already have one you will need to set up that first:
-``WARNING: If you want to use the patcher features, your CTRMap project should be created from a Clean USA Pokémon White 2 ROM``
+- This editor attaches to your CTRMap project, if you don't already have one you will need to set up that first:  
+``WARNING: If you want to use the patcher features, your CTRMap project should be created from a Clean USA Pokémon White 2 ROM``  
   - Install [CTRMap-CE](https://github.com/ds-pokemon-hacking/CTRMap-CE/releases)
   - Install [CTRMapV](https://github.com/ds-pokemon-hacking/CTRMapV/releases)
   - Create your CTRMap project
