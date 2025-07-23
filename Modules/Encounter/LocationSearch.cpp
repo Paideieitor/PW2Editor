@@ -337,6 +337,13 @@ bool LocationSearch::SearchCheck(u32 locationIdx)
 				return false;
 	}
 
+	bool params = false;
+	for (u32 idx = 0; idx < (u32)encounterParams.size(); ++idx)
+		if (encounterParams[idx] != ENCOUNTERDATA_NULL)
+			params = true;
+	if (!params)
+		return true;
+
 	const Location& location = engine->locations[locationIdx];
 	for (u32 idx = 0; idx < (u32)location.size(); ++idx)
 	{
