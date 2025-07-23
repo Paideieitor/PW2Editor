@@ -27,6 +27,9 @@
 #include "Modules/Encounter/LocationSearch.h"
 #include "Modules/Encounter/Zone.h"
 #include "Modules/Encounter/Encounter.h"
+#include "Modules/Trainer/TrainerSearch.h"
+#include "Modules/Trainer/Trainer.h"
+#include "Modules/Trainer/TrainerTeam.h"
 
 #include "Data/Project.h"
 
@@ -72,6 +75,10 @@ Engine::Engine(Project* const project) : project(project)
 	modules.emplace_back(new LocationSearch(this, ENCOUNTER_GROUP));
 	modules.emplace_back(new Zone(this, ENCOUNTER_GROUP));
 	modules.emplace_back(new Encounter(this, ENCOUNTER_GROUP));
+	// Trainers
+	modules.emplace_back(new TrainerSearch(this, TRAINER_GROUP));
+	modules.emplace_back(new Trainer(this, TRAINER_GROUP));
+	modules.emplace_back(new TrainerTeam(this, TRAINER_GROUP));
 }
 
 Engine::~Engine()
@@ -153,6 +160,11 @@ void Engine::SetCurrentLocation(u32 idx, u32 zoneIdx)
 
 	project->selectedLocationIdx = idx;
 	project->selectedZoneIdx = zoneIdx;
+}
+
+void Engine::SetCurrentTrainer(u32 idx)
+{
+	project->selectedTrainerIdx = idx;
 }
 
 void Engine::AddMove()
@@ -334,6 +346,9 @@ bool Engine::LoadTextFiles()
 		missingTextFiles.emplace_back(MOVE_DESCRIPTION_FILE_ID);
 
 		missingTextFiles.emplace_back(LOCATION_NAME_FILE_ID);
+
+		missingTextFiles.emplace_back(TRAINER_NAME_FILE_ID);
+		missingTextFiles.emplace_back(TRAINER_CLASS_FILE_ID);
 	}
 
 	// The file where the Pokémon text data is stored
@@ -362,6 +377,9 @@ bool Engine::LoadTextFiles()
 
 	string locationNamePath = MAKE_FILE_PATH(textNarcPath, LOCATION_NAME_FILE_ID);
 
+	string trainerNamePath = MAKE_FILE_PATH(textNarcPath, TRAINER_NAME_FILE_ID);
+	string trainerClassPath = MAKE_FILE_PATH(textNarcPath, TRAINER_CLASS_FILE_ID);
+
 	// If the missing files are not already set
 	if (!missingTextFiles.size())
 	{
@@ -387,6 +405,9 @@ bool Engine::LoadTextFiles()
 		LOAD_TEXT(MOVE_DESCRIPTION_FILE_ID, moveDescriptionPath);
 
 		LOAD_TEXT(LOCATION_NAME_FILE_ID, locationNamePath);
+
+		LOAD_TEXT(TRAINER_NAME_FILE_ID, trainerNamePath);
+		LOAD_TEXT(TRAINER_CLASS_FILE_ID, trainerClassPath);
 	}
 
 	// Extract the files we are missing
@@ -420,6 +441,9 @@ bool Engine::LoadTextFiles()
 	LoadAlle5File(moveDescriptionPath, moveDescriptions);
 	// Load relevant Location text data
 	LoadAlle5File(locationNamePath, locationNames);
+	// Load relevant Trainer text data
+	LoadAlle5File(trainerNamePath, trainerNames);
+	LoadAlle5File(trainerClassPath, trainerClasses);
 
 	return true;
 }
@@ -658,6 +682,35 @@ bool Engine::LoadLocations(u32 encounterFilesCount)
 	return true;
 }
 
+bool Engine::LoadTrainerData()
+{
+	// Store loaded data in the Trainer array
+	trainers.resize(trainerNames.size());
+	trainerTeams.resize(trainerNames.size());
+	for (u32 trIdx = 0; trIdx < (u32)trainerNames.size(); ++trIdx)
+	{
+		string trainerFilePath = MAKE_FILE_PATH(trainerPath, trIdx);
+		if (!LoadTrainer(trainers[trIdx], trainerFilePath))
+		{
+			Log(CRITICAL, u8"Trainer %d lacks trainer data", trIdx);
+			return false;
+		}
+
+		string trainerTeamFilePath = MAKE_FILE_PATH(trainerTeamPath, trIdx);
+		if (!LoadTrainerTeam(trainerTeams[trIdx], trainers[trIdx], trainerTeamFilePath))
+		{
+			Log(CRITICAL, u8"Trainer %d lacks team data", trIdx);
+			return false;
+		}
+	}
+	if (project->selectedTrainerIdx >= (u32)trainerNames.size())
+		SetCurrentTrainer(0);
+	else
+		SetCurrentTrainer(project->selectedTrainerIdx);
+
+	return true;
+}
+
 bool Engine::Start()
 {
 	// Extract the text data
@@ -687,7 +740,6 @@ bool Engine::Start()
 
 	if (!LoadPokemonData())
 		return false;
-
 
 	loadedFiles = LoadDataNarc(ITEM_NARC_PATH, itemPath);
 	if (loadedFiles < 0)
@@ -719,6 +771,17 @@ bool Engine::Start()
 		return false;
 	
 	if (!LoadLocations(loadedFiles))
+		return false;
+
+	loadedFiles = LoadDataNarc(TRAINER_NARC_PATH, trainerPath);
+	if (loadedFiles < 0)
+		return false;
+
+	loadedFiles = LoadDataNarc(TRAINER_TEAM_NARC_PATH, trainerTeamPath);
+	if (loadedFiles < 0)
+		return false;
+
+	if (!LoadTrainerData())
 		return false;
 
 	return true;
@@ -1415,6 +1478,195 @@ bool Engine::SaveZone(const vector<ZoneData>& zones, const string& file)
 		FileStreamPutBack<int>(fileStream, zone[FLY_X]);
 		FileStreamPutBack<int>(fileStream, zone[FLY_Y]);
 		FileStreamPutBack<int>(fileStream, zone[FLY_Z]);
+	}
+
+	SaveFileStream(fileStream, file);
+	ReleaseFileStream(fileStream);
+	return true;
+}
+
+int trrrr = 0;
+bool Engine::LoadTrainer(TrainerData& trainerData, const string& file)
+{
+	FileStream fileStream;
+	if (!LoadFileStream(fileStream, file))
+		return false;
+
+	u32 currentByte = 0;
+
+	trainerData[TRAINER_TYPE] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
+	trainerData[TRAINER_CLASS] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
+	trainerData[BATTLE_TYPE] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
+	trainerData[POKEMON_COUNT] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
+
+	trainerData[ITEM_1] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+	trainerData[ITEM_2] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+	trainerData[ITEM_3] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+	trainerData[ITEM_4] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+
+	if (trrrr == 175)
+	{
+		int aaa = 0;
+	}
+	++trrrr;
+	u32 AIFlags = (int)FileStreamReadUpdate<u32>(fileStream, currentByte);
+	for (u32 flag = 0; flag < AI_UNUSED_31 - AI_NO_EFFECT_CHECK; ++flag)
+	{
+		trainerData[AI_NO_EFFECT_CHECK + flag] = (AIFlags & (1 << flag)) != 0;
+	}
+		
+
+	trainerData[IS_HEALER] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
+	trainerData[CASH] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
+	trainerData[POST_BATTLE_ITEM] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+
+	ReleaseFileStream(fileStream);
+	return true;
+}
+
+bool Engine::SaveTrainer(const TrainerData& trainerData, const string& file)
+{
+	FileStream fileStream;
+	if (!LoadEmptyFileStream(fileStream))
+		return false;
+
+	FileStreamPutBack<u8>(fileStream, (u8)trainerData[TRAINER_TYPE]);
+	FileStreamPutBack<u8>(fileStream, (u8)trainerData[TRAINER_CLASS]);
+	FileStreamPutBack<u8>(fileStream, (u8)trainerData[BATTLE_TYPE]);
+	FileStreamPutBack<u8>(fileStream, (u8)trainerData[POKEMON_COUNT]);
+
+	FileStreamPutBack<u16>(fileStream, (u16)trainerData[ITEM_1]);
+	FileStreamPutBack<u16>(fileStream, (u16)trainerData[ITEM_2]);
+	FileStreamPutBack<u16>(fileStream, (u16)trainerData[ITEM_3]);
+	FileStreamPutBack<u16>(fileStream, (u16)trainerData[ITEM_4]);
+
+	u32 AIFlags = 0;
+	for (u32 flag = 0; flag < AI_UNUSED_31 - AI_NO_EFFECT_CHECK; ++flag)
+		AIFlags |= (trainerData[AI_NO_EFFECT_CHECK + flag] << flag);
+	FileStreamPutBack<u32>(fileStream, AIFlags);
+
+	FileStreamPutBack<u8>(fileStream, (u8)trainerData[IS_HEALER]);
+	FileStreamPutBack<u8>(fileStream, (u8)trainerData[CASH]);
+
+	FileStreamPutBack<u16>(fileStream, (u16)trainerData[POST_BATTLE_ITEM]);
+
+	SaveFileStream(fileStream, file);
+	ReleaseFileStream(fileStream);
+	return true;
+}
+
+void GetBaseTrainerTeamData(TrainerTeamData& team, u32 slot, const FileStream& fileStream, u32& currentByte)
+{
+	team[TEAM_SLOT(slot, TRAINER_DIFFICULTY)] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
+
+	u8 abilAndSex = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
+	team[TEAM_SLOT(slot, TRAINER_SEX)] = abilAndSex & 0x0F;
+	team[TEAM_SLOT(slot, TRAINER_ABILITY)] = (abilAndSex & 0xF0) >> 4;
+
+	team[TEAM_SLOT(slot, TRAINER_LEVEL)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+	team[TEAM_SLOT(slot, TRAINER_SPECIES)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+	team[TEAM_SLOT(slot, TRAINER_FORM)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+}
+
+bool Engine::LoadTrainerTeam(TrainerTeamData& team, const TrainerData& trainer, const string& file)
+{
+	FileStream fileStream;
+	if (!LoadFileStream(fileStream, file))
+		return false;
+
+	u32 currentByte = 0;
+
+	for (u32 slot = 0; slot < (u32)trainer[POKEMON_COUNT]; ++slot)
+	{
+		switch (trainer[TRAINER_TYPE])
+		{
+		case SIMPLE_TRAINER:
+			GetBaseTrainerTeamData(team, slot, fileStream, currentByte);
+			break;
+		case MOVE_TRAINER:
+			GetBaseTrainerTeamData(team, slot, fileStream, currentByte);
+
+			team[TEAM_SLOT(slot, TRAINER_MOVE_1)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+			team[TEAM_SLOT(slot, TRAINER_MOVE_2)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+			team[TEAM_SLOT(slot, TRAINER_MOVE_3)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+			team[TEAM_SLOT(slot, TRAINER_MOVE_4)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+			break;
+		case ITEM_TRAINER:
+			GetBaseTrainerTeamData(team, slot, fileStream, currentByte);
+
+			team[TEAM_SLOT(slot, TRAINER_HELD_ITEM)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+			break;
+		case GOOD_TRAINER:
+			GetBaseTrainerTeamData(team, slot, fileStream, currentByte);
+
+			team[TEAM_SLOT(slot, TRAINER_HELD_ITEM)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+
+			team[TEAM_SLOT(slot, TRAINER_MOVE_1)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+			team[TEAM_SLOT(slot, TRAINER_MOVE_2)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+			team[TEAM_SLOT(slot, TRAINER_MOVE_3)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+			team[TEAM_SLOT(slot, TRAINER_MOVE_4)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+			break;
+		case PERFECT_TRAINER:
+			break;
+		}
+	}
+
+	ReleaseFileStream(fileStream);
+	return true;
+}
+
+void SetBaseTrainerTeamData(const TrainerTeamData& team, u32 slot, FileStream& fileStream)
+{
+	FileStreamPutBack<u8>(fileStream, (u8)team[TEAM_SLOT(slot, TRAINER_DIFFICULTY)]);
+
+	u8 abilAndSex = team[TEAM_SLOT(slot, TRAINER_SEX)] & 0x0F;
+	abilAndSex |= (team[TEAM_SLOT(slot, TRAINER_ABILITY)] << 4) & 0xF0;
+	FileStreamPutBack<u8>(fileStream, abilAndSex);
+
+	FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_LEVEL)]);
+	FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_SPECIES)]);
+	FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_FORM)]);
+}
+
+bool Engine::SaveTrainerTeam(const TrainerTeamData& team, const TrainerData& trainer, const string& file)
+{
+	FileStream fileStream;
+	if (!LoadEmptyFileStream(fileStream))
+		return false;
+
+	for (u32 slot = 0; slot < (u32)trainer[POKEMON_COUNT]; ++slot)
+	{
+		switch (trainer[TRAINER_TYPE])
+		{
+		case SIMPLE_TRAINER:
+			SetBaseTrainerTeamData(team, slot, fileStream);
+			break;
+		case MOVE_TRAINER:
+			SetBaseTrainerTeamData(team, slot, fileStream);
+
+			FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_MOVE_1)]);
+			FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_MOVE_2)]);
+			FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_MOVE_3)]);
+			FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_MOVE_4)]);
+			break;
+		case ITEM_TRAINER:
+			SetBaseTrainerTeamData(team, slot, fileStream);
+
+			FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_HELD_ITEM)]);
+			break;
+		case GOOD_TRAINER:
+			SetBaseTrainerTeamData(team, slot, fileStream);
+
+			FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_HELD_ITEM)]);
+
+			FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_MOVE_1)]);
+			FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_MOVE_2)]);
+			FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_MOVE_3)]);
+			FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_MOVE_4)]);
+			break;
+		case PERFECT_TRAINER:
+			break;
+		}
 	}
 
 	SaveFileStream(fileStream, file);

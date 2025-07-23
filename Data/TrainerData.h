@@ -72,9 +72,26 @@ enum TrainerPokemonField
 	TRAINERPOKEMONDATA_MAX,
 };
 
-typedef std::array<int, TRAINERPOKEMONDATA_MAX * 6> TrainerTeamData;
+enum TrainerType
+{
+	SIMPLE_TRAINER,
+	MOVE_TRAINER,
+	ITEM_TRAINER,
+	GOOD_TRAINER,
+	PERFECT_TRAINER,
+};
+
+#define MAX_TEAM_SIZE 6
+typedef std::array<int, TRAINERPOKEMONDATA_MAX * MAX_TEAM_SIZE> TrainerTeamData;
+
+void ResetTrainerPokemon(TrainerTeamData& team, u32 slot);
+void DefaultTrainerPokemon(TrainerTeamData& team, u32 slot);
+
+void SwapTrainerPokemon(TrainerTeamData& team, u32 slot1, u32 slot2);
+void RemoveTrainerPokemon(TrainerTeamData& team, u32 slot);
+void InsertTrainerPokemon(TrainerTeamData& team, u32 slot);
 
 #define TRAINER_NULL -1
-#define TRAINER_TEAM_SLOT(team, slot, field) team[(slot * TRAINERPOKEMONDATA_MAX) + field]
+#define TEAM_SLOT(slot, field) (slot * TRAINERPOKEMONDATA_MAX + field)
 
 #endif // _TRAINER_DATA_H

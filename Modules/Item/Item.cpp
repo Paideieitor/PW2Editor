@@ -164,8 +164,6 @@ void Item::HandleSaveEvent(Event* saveEvent)
 	const ItemData& data = engine->items[saveEvent->subType];
 	if (*originalData == data)
 		return;
-	// Update the latest saved instance of the data for other changes
-	*((ItemData*)saveEvent->value) = data;
 
 	string filePath = MAKE_FILE_PATH(savePath, saveEvent->subType);
 	engine->SaveItem(data, filePath);

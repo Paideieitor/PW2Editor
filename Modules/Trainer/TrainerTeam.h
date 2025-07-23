@@ -10,12 +10,12 @@
 
 #include "Data/TrainerData.h"
 
-class TrainerTeama : public Module
+class TrainerTeam : public Module
 {
 public:
-	TrainerTeama() = delete;
-	TrainerTeama(Engine* const engine, u32 group);
-	~TrainerTeama();
+	TrainerTeam() = delete;
+	TrainerTeam(Engine* const engine, u32 group);
+	~TrainerTeam();
 
 	virtual ReturnState RenderGUI() override;
 
@@ -24,9 +24,9 @@ public:
 
 private:
 
-	void ComboBox(TrainerData& trainerData, const char* label, const std::vector<std::string>& items, TrainerField field);
-	void InputInt(TrainerData& trainerData, const char* label, TrainerField field, int maxValue);
-	void CheckBox(TrainerData& trainerData, const char* label, TrainerField field);
+	void ComboBox(TrainerTeamData& team, u32 slot, const char* label, const std::vector<std::string>& items, TrainerPokemonField field);
+	void InputInt(TrainerTeamData& team, u32 slot, const char* label, TrainerPokemonField field, int maxValue);
+	void CheckBox(TrainerTeamData& team, u32 slot, const char* label, TrainerPokemonField field);
 };
 
 #endif // _TRAINER_TEAM_H

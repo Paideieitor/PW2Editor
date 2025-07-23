@@ -48,6 +48,7 @@ enum KlinValue : u32
 	KLIN_SELECTED_MOVE_IDX,
 	KLIN_SELECTED_LOCATION_IDX,
 	KLIN_SELECTED_ZONE_IDX,
+	KLIN_SELECTED_TRAINER_IDX,
 	KLIN_MAX_VALUE,
 };
 const KlinParam KlinParams[] = {
@@ -73,6 +74,7 @@ const KlinParam KlinParams[] = {
 	{"Selected Move Idx", KLIN_U32},
 	{"Selected Location Idx", KLIN_U32},
 	{"Selected Zone Idx", KLIN_U32},
+	{"Selected Trainer Idx", KLIN_U32},
 };
 
 void LoadKlin(KlinHandler& handler, const string& path);

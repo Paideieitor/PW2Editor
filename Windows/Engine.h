@@ -16,6 +16,7 @@
 #include "Data/MoveData.h"
 #include "Data/EncounterData.h"
 #include "Data/ZoneData.h"
+#include "Data/TrainerData.h"
 
 class Module;
 
@@ -44,6 +45,8 @@ public:
 	string moveAnimPath = string();
 	string zonePath = string();
 	string encounterPath = string();
+	string trainerPath = string();
+	string trainerTeamPath = string();
 
 	// Pokémon Editor
 	vector<Pokemon> pokemon = vector<Pokemon>();
@@ -83,6 +86,14 @@ public:
 
 	vector<string> locationNames = vector<string>();
 
+	// Trainer Editor
+	vector<TrainerData> trainers = vector<TrainerData>();
+	vector<TrainerTeamData> trainerTeams = vector<TrainerTeamData>();
+
+	vector<string> trainerNames = vector<string>();
+	vector<string> trainerClasses = vector<string>();
+
+	// Other
 	vector<string> types = vector<string>();
 	vector<string> abilities = vector<string>();
 
@@ -227,7 +238,48 @@ public:
 		"Autum",
 		"Winter",
 	};
-
+	vector<string> trainerTypes = {
+		"Simple",
+		"Moves",
+		"Item",
+		"Good",
+		"Perfect",
+	};
+	vector<string> battleTypes = {
+		"Singles",
+		"Doubles",
+		"Triples",
+		"Rotation",
+	};
+	vector<string> trainerAIFlags = {
+		"No effect check",
+		"Evaluate moves",
+		"Expert",
+		"Set up",
+		"First rival",
+		"N's final Battle",
+		"Baton Pass",
+		"Double/Triple Battle",
+		"HP-Based",
+		"Weather",
+		"Disruption",
+		"Roaming",
+		"Safari",
+		"Tutorial",
+	};
+	vector<string> pokemonSex = {
+		"Random",
+		"Male",
+		"Female",
+		"None",
+	};
+	vector<string> abilitySlots = {
+		"Random Ability",
+		"Ability 1",
+		"Ability 2",
+		"Hidden Ability",
+	};
+	
 	bool commandInput = false;
 
 	template<class T>
@@ -272,6 +324,8 @@ public:
 	bool SaveMove(const MoveData& moveData, const string& file);
 	bool SaveZone(const vector<ZoneData>& zones, const string& file);
 	bool SaveEncounter(const EncounterData& encounterData, const string& file);
+	bool SaveTrainer(const TrainerData& trainerData, const string& file);
+	bool SaveTrainerTeam(const TrainerTeamData& team, const TrainerData& trainer, const string& file);
 	void Save();
 
 	void SendGroupEvent(u32 group);
@@ -280,10 +334,9 @@ public:
 	Pokemon* GetCurrentPokemon() { return currentPkm; }
 
 	void SetCurrentItem(u32 idx);
-
 	void SetCurrentMove(u32 idx);
-
 	void SetCurrentLocation(u32 idx, u32 zoneIdx);
+	void SetCurrentTrainer(u32 idx);
 
 	void AddMove();
 
@@ -308,6 +361,7 @@ private:
 	bool LoadItemData();
 	bool LoadMoveData();
 	bool LoadLocations(u32 encounterFilesCount);
+	bool LoadTrainerData();
 	bool Start();
 
 	bool LoadPersonal(PersonalData& personalData, const string& file);
@@ -318,6 +372,8 @@ private:
 	bool LoadMove(MoveData& moveData, const string& file);
 	bool LoadZone(vector<ZoneData>& zones, const string& file);
 	bool LoadEncounter(EncounterData& encounterData, const string& file);
+	bool LoadTrainer(TrainerData& trainerData, const string& file);
+	bool LoadTrainerTeam(TrainerTeamData& team, const TrainerData& trainer, const string& file);
 
 	vector<Module*> modules = vector<Module*>();
 	vector<Event> reverseEvents = vector<Event>();
@@ -354,6 +410,8 @@ private:
 	#define ITEM_NAME_COLOR_FILE_ID 481
 	#define ITEM_NAME_PLURAL_FILE_ID 482
 #define LOCATION_NAME_FILE_ID 109
+#define TRAINER_NAME_FILE_ID 382
+#define TRAINER_CLASS_FILE_ID 383
 
 #define ZONE_NARC_PATH "0\\1\\2"
 #define PERSONAL_NARC_PATH "0\\1\\6"
@@ -364,6 +422,8 @@ private:
 #define ITEM_NARC_PATH "0\\2\\4"
 #define MOVE_ANIM_NARC_PATH "0\\6\\5"
 #define ENCOUNTER_NARC_PATH "1\\2\\7"
+#define TRAINER_NARC_PATH "0\\9\\1"
+#define TRAINER_TEAM_NARC_PATH "0\\9\\2"
 
 #define SEARCH_TEXT_SIZE 64
 

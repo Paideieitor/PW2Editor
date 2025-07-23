@@ -40,6 +40,8 @@ struct Project
 	u32 selectedLocationIdx = DEFAULT_SELECTED_LOCATION_IDX;
 	u32 selectedZoneIdx = DEFAULT_SELECTED_ZONE_IDX;
 
+	u32 selectedTrainerIdx = DEFAULT_SELECTED_TRAINER_IDX;
+
 	u32 maxEvents = DEFAULT_MAX_EVENTS;
 };
 

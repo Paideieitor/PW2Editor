@@ -22,7 +22,7 @@ ReturnState Trainer::RenderGUI()
 	ComboBox(trainerData, "Class", engine->trainerClasses, TRAINER_CLASS);
 	ComboBox(trainerData, "Battle Type", engine->battleTypes, BATTLE_TYPE);
 
-	InputInt(trainerData, u8"Pokémon Count", POKEMON_COUNT, 6);
+	ImGui::Text(string(u8"Pokémon Count: ") + to_string(trainerData[POKEMON_COUNT]));
 
 	ComboBox(trainerData, "Item 1", engine->itemNames, ITEM_1);
 	ComboBox(trainerData, "Item 2", engine->itemNames, ITEM_2);
@@ -78,7 +78,7 @@ void Trainer::ComboBox(TrainerData& trainerData, const char* label, const std::v
 	if (ImGui::TextInputComboBox(label, items, &selected))
 	{
 		SAVE_CHECK_REVERSE_EVENT(field, trainerData[field], selected,
-			engine->project->selectedItemIdx, trainerData);
+			engine->project->selectedTrainerIdx, trainerData);
 		trainerData[field] = selected;
 	}
 }
@@ -98,7 +98,7 @@ void Trainer::InputInt(TrainerData& trainerData, const char* label, TrainerField
 		}
 
 		SAVE_CHECK_REVERSE_EVENT(field, trainerData[field], value,
-			engine->project->selectedItemIdx, trainerData);
+			engine->project->selectedTrainerIdx, trainerData);
 		trainerData[field] = value;
 	}
 }
@@ -109,7 +109,7 @@ void Trainer::CheckBox(TrainerData& trainerData, const char* label, TrainerField
 	if (ImGui::Checkbox(label, &value))
 	{
 		SAVE_CHECK_REVERSE_EVENT(field, trainerData[field], (int)value,
-			engine->project->selectedItemIdx, trainerData);
+			engine->project->selectedTrainerIdx, trainerData);
 		trainerData[field] = (int)value;
 	}
 }

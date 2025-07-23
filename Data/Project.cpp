@@ -73,6 +73,8 @@ ReturnState LoadProjectSettings(Project& project, const string& name)
 
 	GetKlinValueU32(klin, KLIN_SELECTED_LOCATION_IDX, project.selectedLocationIdx);
 	GetKlinValueU32(klin, KLIN_SELECTED_ZONE_IDX, project.selectedZoneIdx);
+	
+	GetKlinValueU32(klin, KLIN_SELECTED_TRAINER_IDX, project.selectedTrainerIdx);
 
 	GetKlinValueU32(klin, KLIN_MAX_EVENTS, project.maxEvents);
 
@@ -118,6 +120,8 @@ ReturnState SaveProjectSettings(const Project& project)
 
 	SetKlinValueU32(klin, KLIN_SELECTED_LOCATION_IDX, project.selectedLocationIdx);
 	SetKlinValueU32(klin, KLIN_SELECTED_ZONE_IDX, project.selectedZoneIdx);
+
+	SetKlinValueU32(klin, KLIN_SELECTED_TRAINER_IDX, project.selectedTrainerIdx);
 
 	SetKlinValueU32(klin, KLIN_MAX_EVENTS, project.maxEvents);
 

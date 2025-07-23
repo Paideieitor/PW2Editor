@@ -68,7 +68,52 @@ map<wchar_t, wstring> commands = {
     {0xFF00, L"Color"},
 };
 
+#define NINE_BIT_HEADER (wchar_t)0xF100
+#define NINE_BIT_NAME L"9-Bit"
 
+#define AVAILABLE_BITS sizeof(wchar_t) * 8
+#define BIT_MASK 0x01FF
+#define MAX_READ 9
+wstring Process9Bit(const wstring& str)
+{
+    wstring output;
+
+    wchar_t character = 0;
+    u8 nextBit = 0;
+
+    for (u32 i = 0; i < (u32)str.size(); ++i)
+    {
+        wchar_t data = str[i];
+        u8 nextReadBit = 0;
+
+        while (nextReadBit < AVAILABLE_BITS)
+        {
+            u8 bitsToRead = MAX_READ - nextBit;
+            u8 readableBits = AVAILABLE_BITS - nextReadBit;
+            if (bitsToRead > readableBits)
+                bitsToRead = readableBits;
+
+            wchar_t mask = BIT_MASK >> (MAX_READ - bitsToRead);
+            mask = mask << nextReadBit;
+
+            wchar_t bitsRead = (data & mask) >> nextReadBit;
+            character |= bitsRead << nextBit;
+
+            nextBit += bitsToRead;
+            nextReadBit += bitsToRead;
+
+            if (nextBit >= MAX_READ)
+            {
+                if (character == BIT_MASK)
+                    return output;
+                output.push_back(character);
+                character = 0;
+                nextBit = 0;
+            }
+        }
+    }
+    return output;
+}
 
 wchar_t EncryptCharacter(wchar_t character, u16& key)
 {
@@ -131,10 +176,14 @@ bool LoadAlle5File(const string& path, vector<string>& lines)
     for (u16 lineIdx = 0; lineIdx < lineCount; ++lineIdx)
     {
         wstring line;
+
         u16 lineKey = key;
 
         u32 offset = FileStreamRead<u32>(fileStream, (lineIdx * 8) + sectionData + 4) + sectionData;
         u32 length = FileStreamRead<u32>(fileStream, (lineIdx * 8) + sectionData + 8);
+
+        bool is9Bit = false;
+        wstring line9Bit;
 
         line.reserve(length);
 
@@ -144,6 +193,22 @@ bool LoadAlle5File(const string& path, vector<string>& lines)
             wchar_t character = DecryptCharacter(FileStreamReadUpdate<wchar_t>(fileStream, offset), lineKey);
             if (character == 0xFFFF)
                 break;
+
+            if (character == NINE_BIT_HEADER)
+            {
+                is9Bit = true;
+                line9Bit.reserve(length);
+
+                //line += L'[';
+                //line += NINE_BIT_NAME;
+                //line += L']';
+                continue;
+            }
+            if (is9Bit)
+            {
+                line9Bit.push_back(character);
+                continue;
+            }
 
             map<wchar_t, wchar_t>::iterator itr = specialCharacters.find(character);
             if (itr != specialCharacters.end())
@@ -176,6 +241,8 @@ bool LoadAlle5File(const string& path, vector<string>& lines)
 
             line += character; 
         }
+        if (is9Bit)
+            line += Process9Bit(line9Bit);
         lines.emplace_back(WideToUtf8(line));
 
         // Set key for next line
@@ -224,6 +291,8 @@ bool SaveAlle5File(const string& path, const vector<string>& lines)
     {
         // Update the line data with the actual offset
         FileStreamReplace<u32>(fileStream, (lineIdx * 8) + 16 + 4, offset);
+
+        // TODO: Turn back into 9 bit when necessary
 
         wstring line = MakeWideLine(lines[lineIdx]);
         u16 lineKey = key;
