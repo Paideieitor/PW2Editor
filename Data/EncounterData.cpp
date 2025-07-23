@@ -11,8 +11,13 @@ void EncounterReset(EncounterData& encounters)
 void EncounterTableReset(EncounterTable& table)
 {
 	for (u32 encounter = 0; encounter < (u32)table.size(); ++encounter)
-		for (u32 slot = 0; slot < (u32)table[encounter].size(); ++slot)
-			table[encounter][slot] = ENCOUNTERDATA_NULL;
+		EncounterSlotReset(table[encounter]);
+}
+
+void EncounterSlotReset(EncounterSlot& slot)
+{
+	for (u32 idx = 0; idx < (u32)slot.size(); ++idx)
+		slot[idx] = ENCOUNTERDATA_NULL;
 }
 
 bool EncounterTableIsEmpty(const EncounterTable& table)

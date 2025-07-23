@@ -56,8 +56,9 @@ enum Season
 typedef std::array<EncounterTable, SEASON_MAX> EncounterData;
 
 void EncounterReset(EncounterData& encounter);
-
 void EncounterTableReset(EncounterTable& table);
+void EncounterSlotReset(EncounterSlot& slot);
+
 bool EncounterTableIsEmpty(const EncounterTable& table);
 void EncounterTableSetDefault(EncounterTable& table);
 

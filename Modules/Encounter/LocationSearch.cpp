@@ -10,9 +10,16 @@
 #define CHANGE_NAME_EVENT 2
 #define ADD_LOCATION_EVENT 3
 #define REMOVE_LOCATION_EVENT 4
+#define ADVANCED_SEARCH_EVENT 5
+#define CLEAR_SEARCH_EVENT 6
+
+#define ENCOUNTER_EVENT(field) (7 + field)
+#define GET_ENCOUNTER_FROM_EVENT(subType) (subType - ENCOUNTER_EVENT(0))
 
 LocationSearch::LocationSearch(Engine* const engine, u32 group) : Module(engine, group, TEXT_NARC_PATH)
 {
+	ClearSearch();
+
 	Search();
 }
 
@@ -102,6 +109,27 @@ ReturnState LocationSearch::RenderGUI()
 
 	ImGui::Separator();
 
+	if (ImGui::Button("Advanced Search"))
+	{
+		SIMPLE_REVERSE_EVENT(ADVANCED_SEARCH_EVENT, advancedSearchMenu, !advancedSearchMenu);
+		advancedSearchMenu = !advancedSearchMenu;
+	}
+
+	if (ImGui::Button("Clear Search"))
+	{
+		pair<string, EncounterSlot> searchData = make_pair(searchName, encounterParams);
+		ClearSearch();
+		SIMPLE_REVERSE_EVENT(CLEAR_SEARCH_EVENT,
+			make_pair(searchName, encounterParams), searchData);
+
+		Search();
+	}
+
+	if (advancedSearchMenu)
+		AdvancedSearchMenu();
+
+	ImGui::Separator();
+
 	if (selectedIdx >= 0 &&
 		engine->project->selectedLocationIdx < (u32)engine->locationNames.size())
 	{
@@ -152,6 +180,27 @@ void LocationSearch::HandleReverseEvent(const Event* reverseEvent)
 		engine->locations.emplace_back();
 		break;
 	}
+	case ADVANCED_SEARCH_EVENT: // Advanced Search Menu
+	{
+		bool value = (bool*)reverseEvent->value;
+		advancedSearchMenu = value;
+		break;
+	}
+	case CLEAR_SEARCH_EVENT: // Clear Search Data
+	{
+		pair<string, EncounterSlot>* searchData = (pair<string, EncounterSlot>*)reverseEvent->value;
+		searchName = searchData->first;
+		encounterParams = searchData->second;
+		break;
+	}
+	default:
+	{
+		int* value = (int*)reverseEvent->value;
+
+		u32 field = GET_ENCOUNTER_FROM_EVENT(reverseEvent->subType);
+		encounterParams[field] = *value;
+		break;
+	}
 	}
 
 	Search();
@@ -177,6 +226,85 @@ void LocationSearch::TextInput(const char* label, string* text, u32 fileID, cons
 		*text = previous;
 	}
 }
+
+bool LocationSearch::EnableButton(int* params, u32 field, int nullValue, u32 eventID)
+{
+	ImGui::SameLine();
+
+	if (params[field] == nullValue)
+	{
+		if (ImGui::Button(LABEL("Enable", (int)eventID)))
+		{
+			SIMPLE_REVERSE_EVENT(eventID, params[field], 0);
+			params[field] = 0;
+			return true;
+		}
+	}
+	else
+	{
+		if (ImGui::Button(LABEL("Disable", (int)eventID)))
+		{
+			SIMPLE_REVERSE_EVENT(eventID, params[field], nullValue);
+			params[field] = nullValue;
+			return true;
+		}
+	}
+	return false;
+}
+
+bool LocationSearch::ComboBox(const char* label, const std::vector<std::string>& items, int* params, u32 field, int nullValue, u32 eventID)
+{
+	bool output = false;
+
+	int selected = params[field];
+	if (params[field] == nullValue)
+		selected = 0;
+	if (selected >= items.size())
+		return InputInt(label, 0xFFFF, params, field, nullValue, eventID);
+
+	ImGui::BeginDisabled(params[field] == nullValue);
+	ImGui::SetNextItemWidth(150.0f);
+	if (ImGui::TextInputComboBox(label, items, &selected))
+	{
+		SIMPLE_REVERSE_EVENT(eventID, params[field], selected);
+		params[field] = selected;
+		output = true;
+	}
+	ImGui::EndDisabled();
+
+	if (EnableButton(params, field, nullValue, eventID))
+		output = true;
+
+	return output;
+}
+#define ENCOUNTER_COMBO_BOX(label, items, field) ComboBox(label, items, encounterParams.data(), field, ENCOUNTERDATA_NULL, ENCOUNTER_EVENT(field))
+
+bool LocationSearch::InputInt(const char* label, int maxValue, int* params, u32 field, int nullValue, u32 eventID)
+{
+	bool output = false;
+
+	int value = params[field];
+	ImGui::BeginDisabled(params[field] == nullValue);
+	ImGui::SetNextItemWidth(80.0f);
+	if (ImGui::InputInt(LABEL(label, (int)field), &value))
+	{
+		if (value > maxValue)
+			value = maxValue;
+		if (value < 0)
+			value = 0;
+
+		SIMPLE_REVERSE_EVENT(eventID, params[field], value);
+		params[field] = value;
+		output = true;
+	}
+	ImGui::EndDisabled();
+
+	if (EnableButton(params, field, nullValue, eventID))
+		output = true;
+
+	return output;
+}
+#define ENCOUNTER_INPUT_INT(label, field, maxValue) InputInt(label, maxValue, encounterParams.data(), field, ENCOUNTERDATA_NULL, ENCOUNTER_EVENT(field))
 
 void LocationSearch::Search()
 {
@@ -209,5 +337,91 @@ bool LocationSearch::SearchCheck(u32 locationIdx)
 				return false;
 	}
 
-	return true;
+	const Location& location = engine->locations[locationIdx];
+	for (u32 idx = 0; idx < (u32)location.size(); ++idx)
+	{
+		const ZoneData& zone = engine->zones[location[idx]];
+		u32 encounterIdx = ZONE_ENCOUNTER_IDX(zone);
+		if (encounterIdx != ZONE_INVALID_ENCOUNTER_IDX)
+			if (SearchCheckEncounter(encounterIdx))
+				return true;
+	}
+	return false;
+}
+
+bool LocationSearch::SearchCheckEncounter(u32 encounterIdx)
+{
+	u32 season = SUMMER;
+	u32 seasonCount = SEASON_MAX;
+	if (encounterParams[ENCOUNTER_MAX_LEVEL] != ENCOUNTERDATA_NULL)
+	{
+		season = encounterParams[ENCOUNTER_MAX_LEVEL];
+		seasonCount = season + 1;
+	}
+
+	bool looking = false;
+	for (season; season < seasonCount; ++season)
+	{
+		const EncounterTable& table = engine->encounters[encounterIdx][season];
+		for (u32 encounter = ENCOUNTER_SINGLE; encounter < ENCOUNTERDATA_MAX; ++encounter)
+		{
+			u32 params = 0;
+			u32 matches = 0;
+			if (encounterParams[ENCOUNTER_SPECIES] != ENCOUNTERDATA_NULL)
+			{
+				looking = true;
+				++params;
+				if (encounterParams[ENCOUNTER_SPECIES] == table[encounter][ENCOUNTER_SPECIES])
+					++matches;
+			}
+
+			if (encounterParams[ENCOUNTER_FORM] != ENCOUNTERDATA_NULL)
+			{
+				looking = true;
+				++params;
+				if (encounterParams[ENCOUNTER_FORM] == table[encounter][ENCOUNTER_FORM])
+					++matches;
+			}
+
+			if (encounterParams[ENCOUNTER_MIN_LEVEL] != ENCOUNTERDATA_NULL)
+			{
+				looking = true;
+				++params;
+				if (encounterParams[ENCOUNTER_MIN_LEVEL] >= table[encounter][ENCOUNTER_MIN_LEVEL] &&
+					encounterParams[ENCOUNTER_MIN_LEVEL] <= table[encounter][ENCOUNTER_MAX_LEVEL])
+					++matches;
+			}
+
+			if (matches == params)
+				return true;
+		}
+	}
+
+	return !looking;
+}
+
+void LocationSearch::ClearSearch()
+{
+	searchName.clear();
+
+	EncounterSlotReset(encounterParams);
+}
+
+void LocationSearch::AdvancedSearchMenu()
+{
+	bool search = false;
+	ImGui::Begin("Encounter Advanced Search", &advancedSearchMenu);
+
+	if (ENCOUNTER_COMBO_BOX("Season", engine->seasons, ENCOUNTER_MAX_LEVEL))
+		search = true;
+	if (ENCOUNTER_COMBO_BOX("Species", engine->pkmNames, ENCOUNTER_SPECIES))
+		search = true;
+	if (ENCOUNTER_INPUT_INT("Form", ENCOUNTER_FORM, 31))
+		search = true;
+	if (ENCOUNTER_INPUT_INT("Level", ENCOUNTER_MIN_LEVEL, 100))
+		search = true;
+
+	ImGui::End();
+	if (search)
+		Search();
 }
