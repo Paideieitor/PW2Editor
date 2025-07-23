@@ -62,6 +62,7 @@ ReturnState MenuBar::RenderGUI()
 			ImGui::EndMenu();
 		}
 
+		ImGui::BeginDisabled(!engine->PMCCheck());
 		if (ImGui::BeginMenu("Patcher"))
 		{
 			if (ImGui::MenuItem("Options"))
@@ -78,7 +79,7 @@ ReturnState MenuBar::RenderGUI()
 				}
 			}
 
-			bool patchInstalled = PathExists(ConcatPath(engine->project->path, PATCH_INSTALLED_FILE));
+			bool patchInstalled = engine->PatchIsInstalled();
 
 			string buildText = "Build";
 			if (patchInstalled)
@@ -101,6 +102,7 @@ ReturnState MenuBar::RenderGUI()
 
 			ImGui::EndMenu();
 		}
+		ImGui::EndDisabled();
 
 		ImGui::EndMainMenuBar();
 	}

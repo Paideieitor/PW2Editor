@@ -22,6 +22,19 @@ LocationSearch::~LocationSearch()
 
 ReturnState LocationSearch::RenderGUI()
 {
+	if (selectedIdx >= 0 && engine->project->selectedLocationIdx != selectable[selectedIdx])
+	{
+		selectedIdx = 0;
+		for (int idx = 0; idx < (int)engine->locations.size(); ++idx)
+		{
+			if (selectable[idx] == engine->project->selectedLocationIdx)
+			{
+				selectedIdx = idx;
+				break;
+			}
+		}
+	}
+
 	ImGui::Begin(u8"Search Location");
 
 	string name = searchName;
@@ -49,39 +62,43 @@ ReturnState LocationSearch::RenderGUI()
 		}
 		ImGui::EndListBox();
 	}
-	if (ImGui::Button("Add Location"))
-	{
-		SAVE_CHECK_REVERSE_EVENT(ADD_LOCATION_EVENT, 1, 0, 0, engine->locationNames);
 
-		engine->locationNames.emplace_back("Location " + to_string(engine->locationNames.size()));
-		engine->locations.emplace_back();
-		Search();
-	}
-
-	ImGui::BeginDisabled(engine->project->selectedLocationIdx != (u32)engine->locations.size() - 1 ||
-		!engine->locations.back().empty());
-	if (ImGui::Button("Remove Last Location"))
+	if (engine->PatchIsInstalled())
 	{
-		engine->SetCurrentLocation((u32)engine->locations.size() - 2, 0);
+		if (ImGui::Button("Add Location"))
+		{
+			SAVE_CHECK_REVERSE_EVENT(ADD_LOCATION_EVENT, 1, 0, 0, engine->locationNames);
 
-		SAVE_CHECK_REVERSE_EVENT(REMOVE_LOCATION_EVENT, engine->locationNames.back(),
-			string(), 0, engine->locationNames);
+			engine->locationNames.emplace_back("Location " + to_string(engine->locationNames.size()));
+			engine->locations.emplace_back();
+			Search();
+		}
 
-		engine->locationNames.erase(engine->locationNames.begin() + engine->locationNames.size() - 1);
-		engine->locations.erase(engine->locations.begin() + engine->locations.size() - 1);
-		Search();
+		ImGui::BeginDisabled(engine->project->selectedLocationIdx != (u32)engine->locations.size() - 1 ||
+			!engine->locations.back().empty());
+		if (ImGui::Button("Remove Last Location"))
+		{
+			engine->SetCurrentLocation((u32)engine->locations.size() - 2, 0);
+
+			SAVE_CHECK_REVERSE_EVENT(REMOVE_LOCATION_EVENT, engine->locationNames.back(),
+				string(), 0, engine->locationNames);
+
+			engine->locationNames.erase(engine->locationNames.begin() + engine->locationNames.size() - 1);
+			engine->locations.erase(engine->locations.begin() + engine->locations.size() - 1);
+			Search();
+		}
+		if (engine->project->selectedLocationIdx != (u32)engine->locations.size() - 1)
+		{
+			ImGui::Text("Last location can't be removed!");
+			ImGui::Text("It needs to be selected");
+		}
+		else if (!engine->locations.back().empty())
+		{
+			ImGui::Text("Last location can't be removed!");
+			ImGui::Text("At least 1 zone references it");
+		}
+		ImGui::EndDisabled();
 	}
-	if (engine->project->selectedLocationIdx != (u32)engine->locations.size() - 1)
-	{
-		ImGui::Text("Last location can't be removed!");
-		ImGui::Text("It needs to be selected");
-	}
-	else if (!engine->locations.back().empty())
-	{
-		ImGui::Text("Last location can't be removed!");
-		ImGui::Text("At least 1 zone references it");
-	}
-	ImGui::EndDisabled();
 
 	ImGui::Separator();
 

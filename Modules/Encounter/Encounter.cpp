@@ -86,7 +86,7 @@ ReturnState Encounter::RenderGUI()
 			{
 				ImGui::BeginGroup();
 				ImGui::Text(tablesInfo[tableIdx].name);
-				INPUT_INT("Rate", tableIdx, ENCOUNTER_SPECIES, 0xFFFFFFFF)
+				INPUT_INT("Rate", tableIdx, ENCOUNTER_SPECIES, 100)
 				
 				ImGui::Text(u8"        Species                                        Form                   Min.                       Max.");
 				ImGui::BeginDisabled(table[tableIdx][ENCOUNTER_SPECIES] == 0);
@@ -111,10 +111,10 @@ ReturnState Encounter::RenderGUI()
 					ImGui::SameLine();
 			}
 
-			if (ImGui::Button("Copy"))
+			if (ImGui::Button(LABEL("Copy", season)))
 				encounterCopy = table;
 			ImGui::SameLine();
-			if (ImGui::Button("Paste"))
+			if (ImGui::Button(LABEL("Paste", season)))
 			{
 				u32 eventID = ENCOUNTER_EVENT(season, PASTE_EVENT, 0);
 				SAVE_CHECK_REVERSE_EVENT(eventID, table,

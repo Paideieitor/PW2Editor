@@ -287,6 +287,8 @@ public:
 
 	void AddMove();
 
+	bool PMCCheck();
+	bool PatchIsInstalled();
 	void InstallPatch(string settingsPath);
 	void BuildPatch();
 	void UninstallPatch();
@@ -367,6 +369,8 @@ private:
 
 #define SIMPLE_REVERSE_EVENT(subType, value, newValue) engine->AddReverseEvent(moduleIdx, subType, value, newValue, false)
 #define SAVE_CHECK_REVERSE_EVENT(subType, value, newValue, fileID, comparator) engine->AddReverseEvent(moduleIdx, subType, value, newValue, engine->AddSaveEvent(moduleIdx, fileID, comparator))
+
+#define PMC_CHECK_PATH "vfs\\overlay\\overlay_0344.bin"
 
 #define DEV_TOOLS_DIR "..\\Tools"
 #define DEV_BUILDER_DIR ".."

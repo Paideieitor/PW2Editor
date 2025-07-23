@@ -193,6 +193,16 @@ void Engine::AddMove()
 	SendGroupEvent(MOVE_GROUP);
 }
 
+bool Engine::PMCCheck()
+{
+	return PathExists(ConcatPath(project->ctrMapProjectPath, PMC_CHECK_PATH));
+}
+
+bool Engine::PatchIsInstalled()
+{
+	return PathExists(ConcatPath(project->path, PATCH_INSTALLED_FILE));
+}
+
 void Engine::InstallPatch(string settingsPath)
 {
 	string toolsDir = DEPLOY_TOOLS_DIR;
