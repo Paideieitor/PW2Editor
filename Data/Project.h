@@ -37,9 +37,10 @@ struct Project
 
 	u32 selectedMoveIdx = DEFAULT_SELECTED_MOVE_IDX;
 
-	u32 maxEvents = DEFAULT_MAX_EVENTS;
+	u32 selectedLocationIdx = DEFAULT_SELECTED_LOCATION_IDX;
+	u32 selectedZoneIdx = DEFAULT_SELECTED_ZONE_IDX;
 
-	u32 customFeatures = DEFAULT_CUSTOM_FEATURES;
+	u32 maxEvents = DEFAULT_MAX_EVENTS;
 };
 
 ReturnState LoadProjectSettings(Project& project, const string& name);

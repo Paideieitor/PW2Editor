@@ -28,7 +28,7 @@ private:
 	void InputInt(ItemData& itemData, const char* label, ItemField field, int maxValue);
 	void CheckBox(ItemData& itemData, const char* label, ItemField field);
 
-	ItemData itemCopy;
+	ItemData itemCopy = ItemData();
 };
 
 #endif // _ITEM_H

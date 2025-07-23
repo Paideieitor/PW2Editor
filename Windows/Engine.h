@@ -14,6 +14,8 @@
 #include "Data/ChildData.h"
 #include "Data/ItemData.h"
 #include "Data/MoveData.h"
+#include "Data/EncounterData.h"
+#include "Data/ZoneData.h"
 
 class Module;
 
@@ -40,7 +42,10 @@ public:
 	string itemPath = string();
 	string movePath = string();
 	string moveAnimPath = string();
+	string zonePath = string();
+	string encounterPath = string();
 
+	// Pokémon Editor
 	vector<Pokemon> pokemon = vector<Pokemon>();
 
 	vector<string> pkmNames = vector<string>();
@@ -53,6 +58,7 @@ public:
 	vector<EvolutionData> evolution = vector<EvolutionData>();
 	vector<ChildData> child = vector<ChildData>();
 
+	// Item Editor
 	vector<ItemData> items = vector<ItemData>();
 
 	vector<string> itemNames = vector<string>();
@@ -60,6 +66,7 @@ public:
 	vector<string> itemColors = vector<string>();
 	vector<string> itemPlurals = vector<string>();
 
+	// Move Editor
 	vector<MoveData> moves = vector<MoveData>();
 	vector<FileStream> moveAnims = vector<FileStream>();
 
@@ -67,6 +74,14 @@ public:
 	vector<string> moveNamesMayus = vector<string>();
 	vector<string> moveUses = vector<string>();
 	vector<string> moveDescriptions = vector<string>();
+
+	// Encounter Editor
+	vector<Location> locations = vector<Location>();
+
+	vector<ZoneData> zones = vector<ZoneData>();
+	vector<EncounterData> encounters = vector<EncounterData>();
+
+	vector<string> locationNames = vector<string>();
 
 	vector<string> types = vector<string>();
 	vector<string> abilities = vector<string>();
@@ -206,6 +221,12 @@ public:
 		"Aqua Ring",
 		"All",
 	};
+	vector<string> seasons = {
+		"Summer",
+		"Spring",
+		"Autum",
+		"Winter",
+	};
 
 	bool commandInput = false;
 
@@ -249,6 +270,8 @@ public:
 	bool SaveChild(const ChildData& childData, const string& file);
 	bool SaveItem(const ItemData& itemData, const string& file);
 	bool SaveMove(const MoveData& moveData, const string& file);
+	bool SaveZone(const vector<ZoneData>& zones, const string& file);
+	bool SaveEncounter(const EncounterData& encounterData, const string& file);
 	void Save();
 
 	void SendGroupEvent(u32 group);
@@ -257,10 +280,10 @@ public:
 	Pokemon* GetCurrentPokemon() { return currentPkm; }
 
 	void SetCurrentItem(u32 idx);
-	ItemData* GetCurrentItem() { return currentItem; }
 
 	void SetCurrentMove(u32 idx);
-	MoveData* GetCurrentMove() { return currentMove; }
+
+	void SetCurrentLocation(u32 idx, u32 zoneIdx);
 
 	void AddMove();
 
@@ -282,6 +305,7 @@ private:
 	bool LoadPokemonData();
 	bool LoadItemData();
 	bool LoadMoveData();
+	bool LoadLocations(u32 encounterFilesCount);
 	bool Start();
 
 	bool LoadPersonal(PersonalData& personalData, const string& file);
@@ -290,14 +314,14 @@ private:
 	bool LoadChild(ChildData& childData, const string& file);
 	bool LoadItem(ItemData& itemData, const string& file);
 	bool LoadMove(MoveData& moveData, const string& file);
+	bool LoadZone(vector<ZoneData>& zones, const string& file);
+	bool LoadEncounter(EncounterData& encounterData, const string& file);
 
 	vector<Module*> modules = vector<Module*>();
 	vector<Event> reverseEvents = vector<Event>();
 	vector<Event> saveEvents = vector<Event>();
 
 	Pokemon* currentPkm = nullptr;
-	ItemData* currentItem = nullptr;
-	MoveData* currentMove = nullptr;
 
 	string quit = string();
 
@@ -327,7 +351,9 @@ private:
 	#define ITEM_DESCRIPTION_FILE_ID 63
 	#define ITEM_NAME_COLOR_FILE_ID 481
 	#define ITEM_NAME_PLURAL_FILE_ID 482
+#define LOCATION_NAME_FILE_ID 109
 
+#define ZONE_NARC_PATH "0\\1\\2"
 #define PERSONAL_NARC_PATH "0\\1\\6"
 #define LEARNSET_NARC_PATH "0\\1\\8"
 #define EVOLUTION_NARC_PATH "0\\1\\9"
@@ -335,6 +361,7 @@ private:
 #define MOVE_NARC_PATH "0\\2\\1"
 #define ITEM_NARC_PATH "0\\2\\4"
 #define MOVE_ANIM_NARC_PATH "0\\6\\5"
+#define ENCOUNTER_NARC_PATH "1\\2\\7"
 
 #define SEARCH_TEXT_SIZE 64
 

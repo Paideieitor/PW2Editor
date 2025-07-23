@@ -46,7 +46,8 @@ enum KlinValue : u32
 	KLIN_GROUP,
 	KLIN_SELECTED_ITEM_IDX,
 	KLIN_SELECTED_MOVE_IDX,
-	KLIN_CUSTOM_FEATURES,
+	KLIN_SELECTED_LOCATION_IDX,
+	KLIN_SELECTED_ZONE_IDX,
 	KLIN_MAX_VALUE,
 };
 const KlinParam KlinParams[] = {
@@ -69,8 +70,9 @@ const KlinParam KlinParams[] = {
 	{"Max Events", KLIN_U32},
 	{"Group", KLIN_U32},
 	{"Selected Item Idx", KLIN_U32},
-	{"Custom Features", KLIN_U32},
 	{"Selected Move Idx", KLIN_U32},
+	{"Selected Location Idx", KLIN_U32},
+	{"Selected Zone Idx", KLIN_U32},
 };
 
 void LoadKlin(KlinHandler& handler, const string& path);

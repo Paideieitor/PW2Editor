@@ -70,10 +70,11 @@ ReturnState LoadProjectSettings(Project& project, const string& name)
 	GetKlinValueU32(klin, KLIN_SELECTED_ITEM_IDX, project.selectedItemIdx);
 
 	GetKlinValueU32(klin, KLIN_SELECTED_MOVE_IDX, project.selectedMoveIdx);
-	
-	GetKlinValueU32(klin, KLIN_MAX_EVENTS, project.maxEvents);
 
-	GetKlinValueU32(klin, KLIN_CUSTOM_FEATURES, project.customFeatures);
+	GetKlinValueU32(klin, KLIN_SELECTED_LOCATION_IDX, project.selectedLocationIdx);
+	GetKlinValueU32(klin, KLIN_SELECTED_ZONE_IDX, project.selectedZoneIdx);
+
+	GetKlinValueU32(klin, KLIN_MAX_EVENTS, project.maxEvents);
 
 	ReleaseKlin(klin);
     return OK;
@@ -115,9 +116,10 @@ ReturnState SaveProjectSettings(const Project& project)
 
 	SetKlinValueU32(klin, KLIN_SELECTED_MOVE_IDX, project.selectedMoveIdx);
 
-	SetKlinValueU32(klin, KLIN_MAX_EVENTS, project.maxEvents);
+	SetKlinValueU32(klin, KLIN_SELECTED_LOCATION_IDX, project.selectedLocationIdx);
+	SetKlinValueU32(klin, KLIN_SELECTED_ZONE_IDX, project.selectedZoneIdx);
 
-	SetKlinValueU32(klin, KLIN_CUSTOM_FEATURES, (u32)project.customFeatures);
+	SetKlinValueU32(klin, KLIN_MAX_EVENTS, project.maxEvents);
 
 	SaveKlin(klin, project.settingsPath, true);
 	return OK;

@@ -125,4 +125,7 @@ bool FileStreamReplace(FileStream& stream, const u32 offset, const T& value)
 // Get a pointer to an offset of the data stored in the file stream
 u8* FileStreamGetDataPtr(const FileStream& stream, u32 offset);
 
+// Check if an offset is inside the file
+bool FileStreamEnded(const FileStream& stream, u32 offset);
+
 #endif // _FILE_UTILS_H

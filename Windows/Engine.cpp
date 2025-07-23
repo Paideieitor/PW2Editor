@@ -24,6 +24,9 @@
 #include "Modules/Move/MoveSearch.h"
 #include "Modules/Move/Move.h"
 #include "Modules/Move/MoveText.h"
+#include "Modules/Encounter/LocationSearch.h"
+#include "Modules/Encounter/Zone.h"
+#include "Modules/Encounter/Encounter.h"
 
 #include "Data/Project.h"
 
@@ -65,6 +68,10 @@ Engine::Engine(Project* const project) : project(project)
 	modules.emplace_back(new MoveSearch(this, MOVE_GROUP));
 	modules.emplace_back(new Move(this, MOVE_GROUP));
 	modules.emplace_back(new MoveText(this, MOVE_GROUP));
+	// Encounters
+	modules.emplace_back(new LocationSearch(this, ENCOUNTER_GROUP));
+	modules.emplace_back(new Zone(this, ENCOUNTER_GROUP));
+	modules.emplace_back(new Encounter(this, ENCOUNTER_GROUP));
 }
 
 Engine::~Engine()
@@ -127,13 +134,25 @@ void Engine::SetCurrentPokemon(u32 idx, u32 form)
 void Engine::SetCurrentItem(u32 idx)
 {
 	project->selectedItemIdx = idx;
-	currentItem = &(items[idx]);
 }
 
 void Engine::SetCurrentMove(u32 idx)
 {
 	project->selectedMoveIdx = idx;
-	currentMove = &(moves[idx]);
+}
+
+void Engine::SetCurrentLocation(u32 idx, u32 zoneIdx)
+{
+	if (project->selectedLocationIdx != idx)
+	{
+		if (!locations[idx].empty())
+			zoneIdx = locations[idx][0];
+		else
+			zoneIdx = 0;
+	}
+
+	project->selectedLocationIdx = idx;
+	project->selectedZoneIdx = zoneIdx;
 }
 
 void Engine::AddMove()
@@ -303,6 +322,8 @@ bool Engine::LoadTextFiles()
 		missingTextFiles.emplace_back(MOVE_NAME_MAYUS_FILE_ID);
 		missingTextFiles.emplace_back(MOVE_USE_FILE_ID);
 		missingTextFiles.emplace_back(MOVE_DESCRIPTION_FILE_ID);
+
+		missingTextFiles.emplace_back(LOCATION_NAME_FILE_ID);
 	}
 
 	// The file where the Pokémon text data is stored
@@ -329,6 +350,8 @@ bool Engine::LoadTextFiles()
 	string moveUsePath = MAKE_FILE_PATH(textNarcPath, MOVE_USE_FILE_ID);
 	string moveDescriptionPath = MAKE_FILE_PATH(textNarcPath, MOVE_DESCRIPTION_FILE_ID);
 
+	string locationNamePath = MAKE_FILE_PATH(textNarcPath, LOCATION_NAME_FILE_ID);
+
 	// If the missing files are not already set
 	if (!missingTextFiles.size())
 	{
@@ -352,6 +375,8 @@ bool Engine::LoadTextFiles()
 		LOAD_TEXT(MOVE_NAME_MAYUS_FILE_ID, moveNameMayusPath);
 		LOAD_TEXT(MOVE_USE_FILE_ID, moveUsePath);
 		LOAD_TEXT(MOVE_DESCRIPTION_FILE_ID, moveDescriptionPath);
+
+		LOAD_TEXT(LOCATION_NAME_FILE_ID, locationNamePath);
 	}
 
 	// Extract the files we are missing
@@ -383,6 +408,8 @@ bool Engine::LoadTextFiles()
 	LoadAlle5File(moveNameMayusPath, moveNamesMayus);
 	LoadAlle5File(moveUsePath, moveUses);
 	LoadAlle5File(moveDescriptionPath, moveDescriptions);
+	// Load relevant Location text data
+	LoadAlle5File(locationNamePath, locationNames);
 
 	return true;
 }
@@ -536,7 +563,7 @@ bool Engine::LoadPokemonData()
 		}
 		pokemon.push_back(pkm);
 	}
-	if (project->selectedPkmIdx >= pokemon.size())
+	if (project->selectedPkmIdx >= (u32)pokemon.size())
 		SetCurrentPokemon(0, 0);
 	else
 		SetCurrentPokemon(project->selectedPkmIdx, project->selectedPkmForm);
@@ -556,7 +583,7 @@ bool Engine::LoadItemData()
 			return false;
 		}
 	}
-	if (project->selectedItemIdx >= items.size())
+	if (project->selectedItemIdx >= (u32)items.size())
 		SetCurrentItem(0);
 	else
 		SetCurrentItem(project->selectedItemIdx);
@@ -579,11 +606,45 @@ bool Engine::LoadMoveData()
 		string moveAnimFilePath = MAKE_FILE_PATH(moveAnimPath, moveIdx);
 		LoadFileStream(moveAnims[moveIdx], moveAnimFilePath);
 	}
-	if (project->selectedMoveIdx >= moves.size())
+	if (project->selectedMoveIdx >= (u32)moves.size())
 		SetCurrentMove(0);
 	else
 		SetCurrentMove(project->selectedMoveIdx);
 
+	return true;
+}
+
+bool Engine::LoadLocations(u32 encounterFilesCount)
+{
+	string zoneFilePath = MAKE_FILE_PATH(zonePath, 0);
+	if (!LoadZone(zones, zoneFilePath))
+		return false;
+
+	locations.resize(locationNames.size());
+	for (u32 locationIdx = 0; locationIdx < (u32)locationNames.size(); ++locationIdx)
+	{
+		for (u32 zoneIdx = 0; zoneIdx < (u32)zones.size(); ++zoneIdx)
+		{
+			const ZoneData& zone = zones[zoneIdx];
+			u32 locationNameIdx = ZONE_LOCATION_NAME_IDX(zone);
+			if (locationNameIdx == locationIdx)
+			{
+				locations[locationIdx].push_back(zoneIdx);
+			}
+		}
+	}
+
+	encounters.resize(encounterFilesCount);
+	for (u32 encounterIdx = 0; encounterIdx < encounterFilesCount; ++encounterIdx)
+	{
+		string encounterFilePath = MAKE_FILE_PATH(encounterPath, encounterIdx);
+		LoadEncounter(encounters[encounterIdx], encounterFilePath);
+	}
+
+	if (project->selectedLocationIdx >= (u32)locations.size())
+		SetCurrentLocation(0, 0);
+	else
+		SetCurrentLocation(project->selectedLocationIdx, project->selectedZoneIdx); 
 	return true;
 }
 
@@ -637,6 +698,17 @@ bool Engine::Start()
 	moveAnims.resize(loadedFiles);
 
 	if (!LoadMoveData())
+		return false;
+
+	loadedFiles = LoadDataNarc(ZONE_NARC_PATH, zonePath);
+	if (loadedFiles < 0)
+		return false;
+
+	loadedFiles = LoadDataNarc(ENCOUNTER_NARC_PATH, encounterPath);
+	if (loadedFiles < 0)
+		return false;
+	
+	if (!LoadLocations(loadedFiles))
 		return false;
 
 	return true;
@@ -1196,6 +1268,144 @@ bool Engine::SaveMove(const MoveData& moveData, const string& file)
 		if (moveData[IS_CONTACT + moveFlag])
 			flags |= (1 << moveFlag);
 	FileStreamPutBack<u32>(fileStream, flags);
+
+	SaveFileStream(fileStream, file);
+	ReleaseFileStream(fileStream);
+	return true;
+}
+
+bool Engine::LoadEncounter(EncounterData& encounterData, const string& file)
+{
+	FileStream fileStream;
+	if (!LoadFileStream(fileStream, file))
+		return false;
+
+	u32 currentByte = 0;
+	for (u32 season = SUMMER; season < SEASON_MAX; ++season)
+	{
+		EncounterTable& table = encounterData[season];
+		if (FileStreamEnded(fileStream, currentByte + 1))
+		{
+			EncounterTableReset(table);
+			continue;
+		}
+
+		for (u32 type = LAND_SINGLE_RATE; type <= UNKNOWN_RATE; ++type)
+			table[type][ENCOUNTER_SPECIES] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
+
+		for (u32 encounter = ENCOUNTER_SINGLE; encounter < ENCOUNTERDATA_MAX; ++encounter)
+			table[encounter] = GetEncounterSlot(FileStreamReadUpdate<u32>(fileStream, currentByte));
+	}
+
+	ReleaseFileStream(fileStream);
+	return true;
+}
+
+bool Engine::SaveEncounter(const EncounterData& encounterData, const string& file)
+{
+	FileStream fileStream;
+	if (!LoadEmptyFileStream(fileStream))
+		return false;
+
+	for (u32 season = SUMMER; season < SEASON_MAX; ++season)
+	{
+		const EncounterTable& table = encounterData[season];
+		if (EncounterTableIsEmpty(table))
+			break;
+
+		for (u32 type = LAND_SINGLE_RATE; type <= UNKNOWN_RATE; ++type)
+			FileStreamPutBack<u8>(fileStream, (u8)table[type][ENCOUNTER_SPECIES]);
+
+		for (u32 encounter = ENCOUNTER_SINGLE; encounter < ENCOUNTERDATA_MAX; ++encounter)
+			FileStreamPutBack<u32>(fileStream, (u32)SetEncounterSlot(table[encounter]));
+	}
+
+	SaveFileStream(fileStream, file);
+	ReleaseFileStream(fileStream);
+	return true;
+}
+
+bool Engine::LoadZone(vector<ZoneData>& zones, const string& file)
+{
+	FileStream fileStream;
+	if (!LoadFileStream(fileStream, file))
+		return false;
+
+	u32 currentByte = 0;
+	u32 currentZone = 0;
+
+	while (!FileStreamEnded(fileStream, currentByte + 1))
+	{
+		ZoneData zone = ZoneData();
+
+		zone[MAP_TYPE] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
+		zone[NPC_INFO_CACHE_IDX] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
+
+		zone[AREA_ID] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+		zone[MATRIX_ID] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+		zone[SCRIPTS_ID] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+		zone[LEVELSCRIPTS_ID] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+		zone[TEXTS_ID] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+		zone[BG_MAP_SPR] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+		zone[BG_MAP_SUM] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+		zone[BG_MAP_AUT] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+		zone[BG_MAP_WIN] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+		zone[ENCOUNTERS_ID] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+		zone[ENTITIES_ID] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+		zone[PARENT_ZONE_ID] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+		zone[LOCATION_NAME_INFO] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+		zone[ENVIROMENT_FLAGS] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+		zone[FLAGS_BATTLE_BG_MAP_TRANSITION] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+		zone[MATRIX_CAMERA_BOUNDS] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+		zone[NAME_ICON] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+
+		zone[FLY_X] = (int)FileStreamReadUpdate<int>(fileStream, currentByte);
+		zone[FLY_Y] = (int)FileStreamReadUpdate<int>(fileStream, currentByte);
+		zone[FLY_Z] = (int)FileStreamReadUpdate<int>(fileStream, currentByte);
+
+		zones.push_back(zone);
+		++currentZone;
+	}
+
+	ReleaseFileStream(fileStream);
+	return true;
+}
+
+bool Engine::SaveZone(const vector<ZoneData>& zones, const string& file)
+{
+	FileStream fileStream;
+	if (!LoadEmptyFileStream(fileStream))
+		return false;
+
+	for (u32 zoneIdx = 0; zoneIdx < (u32)zones.size(); ++zoneIdx)
+	{
+		const ZoneData& zone = zones[zoneIdx];
+
+		FileStreamPutBack<u8>(fileStream, (u8)zone[MAP_TYPE]);
+		FileStreamPutBack<u8>(fileStream, (u8)zone[NPC_INFO_CACHE_IDX]);
+
+		FileStreamPutBack<u16>(fileStream, (u16)zone[AREA_ID]);
+		FileStreamPutBack<u16>(fileStream, (u16)zone[MATRIX_ID]);
+		FileStreamPutBack<u16>(fileStream, (u16)zone[SCRIPTS_ID]);
+		FileStreamPutBack<u16>(fileStream, (u16)zone[LEVELSCRIPTS_ID]);
+		FileStreamPutBack<u16>(fileStream, (u16)zone[TEXTS_ID]);
+		FileStreamPutBack<u16>(fileStream, (u16)zone[BG_MAP_SPR]);
+		FileStreamPutBack<u16>(fileStream, (u16)zone[BG_MAP_SUM]);
+		FileStreamPutBack<u16>(fileStream, (u16)zone[BG_MAP_AUT]);
+		FileStreamPutBack<u16>(fileStream, (u16)zone[BG_MAP_WIN]);
+		FileStreamPutBack<u16>(fileStream, (u16)zone[ENCOUNTERS_ID]);
+		FileStreamPutBack<u16>(fileStream, (u16)zone[ENTITIES_ID]);
+		FileStreamPutBack<u16>(fileStream, (u16)zone[PARENT_ZONE_ID]);
+		FileStreamPutBack<u16>(fileStream, (u16)zone[LOCATION_NAME_INFO]);
+		FileStreamPutBack<u16>(fileStream, (u16)zone[ENVIROMENT_FLAGS]);
+		FileStreamPutBack<u16>(fileStream, (u16)zone[FLAGS_BATTLE_BG_MAP_TRANSITION]);
+		FileStreamPutBack<u16>(fileStream, (u16)zone[MATRIX_CAMERA_BOUNDS]);
+		FileStreamPutBack<u16>(fileStream, (u16)zone[NAME_ICON]);
+
+		FileStreamPutBack<int>(fileStream, zone[FLY_X]);
+		FileStreamPutBack<int>(fileStream, zone[FLY_Y]);
+		FileStreamPutBack<int>(fileStream, zone[FLY_Z]);
+	}
 
 	SaveFileStream(fileStream, file);
 	ReleaseFileStream(fileStream);

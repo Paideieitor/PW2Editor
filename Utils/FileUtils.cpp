@@ -280,3 +280,8 @@ u8* FileStreamGetDataPtr(const FileStream& stream, u32 offset)
 {
 	return stream.data + offset;
 }
+
+bool FileStreamEnded(const FileStream& stream, u32 offset)
+{
+	return offset >= stream.length;
+}
