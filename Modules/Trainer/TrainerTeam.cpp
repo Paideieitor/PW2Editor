@@ -2,12 +2,16 @@
 
 #include "Windows/Engine.h"
 
+#include "Modules/Trainer/Trainer.h"
 #include "Modules/Trainer/TrainerTeam.h"
 
 #define REMOVE_POKEMON_EVENT TEAM_SLOT(MAX_TEAM_SIZE, TRAINERPOKEMONDATA_MAX)
 #define ADD_POKEMON_EVENT TEAM_SLOT(MAX_TEAM_SIZE, TRAINERPOKEMONDATA_MAX + 1)
 
-TrainerTeam::TrainerTeam(Engine* const engine, u32 group) : Module(engine, group, TRAINER_TEAM_NARC_PATH)
+#define TRAINER_MODULE ((Trainer*)engine->modules[trainerModule])
+
+TrainerTeam::TrainerTeam(Engine* const engine, u32 group, u32 trainerModule) :
+	Module(engine, group, TRAINER_TEAM_NARC_PATH), trainerModule(trainerModule)
 {
 }
 
@@ -47,11 +51,21 @@ ReturnState TrainerTeam::RenderGUI()
 		ImGui::EndDisabled();
 
 		ImGui::BeginDisabled(type == SIMPLE_TRAINER || type == ITEM_TRAINER);
-		ImGui::Text("Moves");
-		ComboBox(team, slot, "##Move1", engine->moveNames, TRAINER_MOVE_1);
-		ComboBox(team, slot, "##Move2", engine->moveNames, TRAINER_MOVE_2);
-		ComboBox(team, slot, "##Move3", engine->moveNames, TRAINER_MOVE_3);
-		ComboBox(team, slot, "##Move4", engine->moveNames, TRAINER_MOVE_4);
+		ImGui::Text("Moves                    Max PP");
+		for (u32 moveSlot = 0; moveSlot < 4; ++moveSlot)
+		{
+			ComboBox(team, slot, " ", engine->moveNames, (TrainerPokemonField)(TRAINER_MOVE_1 + moveSlot));
+			if (type == PERFECT_TRAINER)
+			{
+				ImGui::SameLine();
+				CheckBox(team, slot, " ", (TrainerPokemonField)(TRAINER_MAX_PP_1 + moveSlot));
+			}
+		}
+		if (type == PERFECT_TRAINER)
+		{
+			ComboBox(team, slot, "Nature", engine->natures, TRAINER_NATURE);
+			InputInt(team, slot, "Happiness", TRAINER_HAPPINESS, 255);
+		}
 		ImGui::EndDisabled();
 
 		ImGui::EndGroup();
@@ -87,7 +101,17 @@ ReturnState TrainerTeam::RenderGUI()
 		}
 		else
 		{
+			ImGui::Text("    IVs                EVs");
+#define STAT_DISPLAY(text, iv, ev) ImGui::Text(text); ImGui::SameLine(); InputInt(team, slot, " ", iv, 31); ImGui::SameLine(); InputInt(team, slot, " ", ev, 255);
+			STAT_DISPLAY("HP  ", TRAINER_HP_IV, TRAINER_HP_EV);
+			STAT_DISPLAY("ATK", TRAINER_ATK_IV, TRAINER_ATK_EV);
+			STAT_DISPLAY("DEF", TRAINER_DEF_IV, TRAINER_DEF_EV);
+			STAT_DISPLAY("SPE", TRAINER_SPE_IV, TRAINER_SPE_EV);
+			STAT_DISPLAY("SPA", TRAINER_SPA_IV, TRAINER_SPA_EV);
+			STAT_DISPLAY("SPD", TRAINER_SPD_IV, TRAINER_SPD_EV);
 
+			ComboBox(team, slot, "Status", status, TRAINER_STATUS);
+			InputInt(team, slot, "HP Percent", TRAINER_HP_PERCENT, 100);
 		}
 
 		ImGui::EndGroup();
@@ -118,7 +142,7 @@ ReturnState TrainerTeam::RenderGUI()
 		RemoveTrainerPokemon(team, (u32)slotToRemove);
 		SAVE_CHECK_REVERSE_EVENT(REMOVE_POKEMON_EVENT, previous, team, engine->project->selectedTrainerIdx, previous);
 		
-		--trainer[POKEMON_COUNT];
+		TRAINER_MODULE->RemovePokemon();
 	}
 	if (pkmCount < MAX_TEAM_SIZE && ImGui::Button("Add"))
 	{
@@ -126,7 +150,7 @@ ReturnState TrainerTeam::RenderGUI()
 		InsertTrainerPokemon(team, pkmCount);
 		SAVE_CHECK_REVERSE_EVENT(ADD_POKEMON_EVENT, previous, team, engine->project->selectedTrainerIdx, previous);
 	
-		++trainer[POKEMON_COUNT];
+		TRAINER_MODULE->AddPokemon();
 	}
 
 	ImGui::End();

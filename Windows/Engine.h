@@ -96,6 +96,7 @@ public:
 	// Other
 	vector<string> types = vector<string>();
 	vector<string> abilities = vector<string>();
+	vector<string> natures = vector<string>();
 
 	vector<string> eggGroups = {
 		"None",
@@ -384,6 +385,7 @@ private:
 	string quit = string();
 
 	friend class Module;
+	friend class TrainerTeam;
 };
 
 #define CTRMAP_FILESYSTEM_PATH "vfs\\data\\a"
@@ -411,7 +413,8 @@ private:
 	#define ITEM_NAME_PLURAL_FILE_ID 482
 #define LOCATION_NAME_FILE_ID 109
 #define TRAINER_NAME_FILE_ID 382
-#define TRAINER_CLASS_FILE_ID 383
+	#define TRAINER_CLASS_FILE_ID 383
+#define NATURE_FILE_ID 27
 
 #define ZONE_NARC_PATH "0\\1\\2"
 #define PERSONAL_NARC_PATH "0\\1\\6"

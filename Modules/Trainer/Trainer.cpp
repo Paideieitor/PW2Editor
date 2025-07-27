@@ -65,6 +65,20 @@ void Trainer::HandleSaveEvent(Event* saveEvent)
 	engine->SaveTrainer(data, filePath);
 }
 
+void Trainer::AddPokemon()
+{
+	TrainerData& trainerData = engine->trainers[engine->project->selectedTrainerIdx];
+	engine->AddSaveEvent(moduleIdx, engine->project->selectedTrainerIdx, trainerData);
+	++trainerData[POKEMON_COUNT];
+}
+
+void Trainer::RemovePokemon()
+{
+	TrainerData& trainerData = engine->trainers[engine->project->selectedTrainerIdx];
+	engine->AddSaveEvent(moduleIdx, engine->project->selectedTrainerIdx, trainerData);
+	--trainerData[POKEMON_COUNT];
+}
+
 void Trainer::ComboBox(TrainerData& trainerData, const char* label, const std::vector<std::string>& items, TrainerField field)
 {
 	int selected = trainerData[field];

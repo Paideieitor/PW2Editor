@@ -22,6 +22,9 @@ public:
 	virtual void HandleReverseEvent(const Event* reverseEvent) override;
 	void HandleSaveEvent(Event* saveEvent) override;
 
+	void AddPokemon();
+	void RemovePokemon();
+
 private:
 
 	void ComboBox(TrainerData& trainerData, const char* label, const std::vector<std::string>& items, TrainerField field);
