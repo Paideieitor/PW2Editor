@@ -51,7 +51,7 @@ ReturnState TrainerTeam::RenderGUI()
 		ImGui::EndDisabled();
 
 		ImGui::BeginDisabled(type == SIMPLE_TRAINER || type == ITEM_TRAINER);
-		ImGui::Text("Moves                    Max PP");
+		ImGui::Text("Moves                                        Max PP");
 		for (u32 moveSlot = 0; moveSlot < 4; ++moveSlot)
 		{
 			ComboBox(team, slot, " ", engine->moveNames, (TrainerPokemonField)(TRAINER_MOVE_1 + moveSlot));
@@ -76,16 +76,19 @@ ReturnState TrainerTeam::RenderGUI()
 
 		if (type != PERFECT_TRAINER)
 		{
-			ComboBox(team, slot, "##Ability", engine->abilitySlots, TRAINER_ABILITY);
+			ComboBox(team, slot, "##Ability", engine->abilitySlots, TRAINER_ABILITY_SLOT);
 
 			int species = team[TEAM_SLOT(slot, TRAINER_SPECIES)];
-			int abilitySlot = team[TEAM_SLOT(slot, TRAINER_ABILITY)];
+			int abilitySlot = team[TEAM_SLOT(slot, TRAINER_ABILITY_SLOT)];
 			PersonalData& personal = engine->personal[species];
-			if (abilitySlot != 0)
+			if (abilitySlot == 0)
+				abilitySlot = 1;
+			team[TEAM_SLOT(slot, TRAINER_ABILITY)] = personal[ABILITY_1 + (abilitySlot - 1)];
+
+			if (team[TEAM_SLOT(slot, TRAINER_ABILITY_SLOT)] != 0)
 			{
-				int ability = personal[ABILITY_1 + (abilitySlot - 1)];
 				ImGui::SameLine();
-				ImGui::Text(engine->abilities[ability]);
+				ImGui::Text(engine->abilities[team[TEAM_SLOT(slot, TRAINER_ABILITY)]]);
 			}
 		}
 		else
@@ -95,9 +98,12 @@ ReturnState TrainerTeam::RenderGUI()
 		{
 			InputInt(team, slot, "Difficulty", TRAINER_DIFFICULTY, 255);
 
-			int difficulty = team[TEAM_SLOT(slot, TRAINER_DIFFICULTY)];
+			int ivs = 31 * team[TEAM_SLOT(slot, TRAINER_DIFFICULTY)] / 255;
+			for (u32 iv = 0; iv < STAT_COUNT; ++iv)
+				team[TEAM_SLOT(slot, TRAINER_HP_IV + iv)] = ivs;
+
 			ImGui::SameLine();
-			ImGui::Text(string("-> IVs: ") + to_string(31 * difficulty / 255));
+			ImGui::Text(string("-> IVs: ") + to_string(ivs));
 		}
 		else
 		{
@@ -159,12 +165,13 @@ ReturnState TrainerTeam::RenderGUI()
 
 void TrainerTeam::HandleReverseEvent(const Event* reverseEvent)
 {
+	TrainerTeamData& team = engine->trainerTeams[engine->project->selectedTrainerIdx];
 	switch (reverseEvent->subType)
 	{
 	case REMOVE_POKEMON_EVENT:
 	{
 		TrainerTeamData* value = (TrainerTeamData*)reverseEvent->value;
-		engine->trainerTeams[engine->project->selectedTrainerIdx] = *value;
+		team = *value;
 
 		TrainerData& trainer = engine->trainers[engine->project->selectedTrainerIdx];
 		++trainer[POKEMON_COUNT];
@@ -173,7 +180,7 @@ void TrainerTeam::HandleReverseEvent(const Event* reverseEvent)
 	case ADD_POKEMON_EVENT:
 	{
 		TrainerTeamData* value = (TrainerTeamData*)reverseEvent->value;
-		engine->trainerTeams[engine->project->selectedTrainerIdx] = *value;
+		team = *value;
 
 		TrainerData& trainer = engine->trainers[engine->project->selectedTrainerIdx];
 		--trainer[POKEMON_COUNT];
@@ -182,7 +189,29 @@ void TrainerTeam::HandleReverseEvent(const Event* reverseEvent)
 	default:
 	{
 		int* value = (int*)reverseEvent->value;
-		engine->trainerTeams[engine->project->selectedTrainerIdx][reverseEvent->subType] = *value;
+		team[reverseEvent->subType] = *value;
+
+		u32 slot = 0;
+		switch (GetFieldFromTeamSlot(reverseEvent->subType, &slot))
+		{
+		case TRAINER_DIFFICULTY:
+		{
+			int ivs = 31 * *value / 255;
+			for (u32 iv = 0; iv < STAT_COUNT; ++iv)
+				team[TEAM_SLOT(slot, TRAINER_HP_IV + iv)] = ivs;
+			break;
+		}
+		case TRAINER_ABILITY_SLOT:
+		{
+			int species = team[TEAM_SLOT(slot, TRAINER_SPECIES)];
+			int abilitySlot = team[TEAM_SLOT(slot, TRAINER_ABILITY_SLOT)];
+			PersonalData& personal = engine->personal[species];
+			if (abilitySlot == 0)
+				abilitySlot = 1;
+			team[TEAM_SLOT(slot, TRAINER_ABILITY)] = personal[ABILITY_1 + (abilitySlot - 1)];
+			break;
+		}
+		}
 		break;
 	}
 	}

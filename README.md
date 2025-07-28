@@ -12,6 +12,9 @@ Change moves' information from the damage dealt, to it's effects and text descri
 ### Location and Encounter Data Editor
 Change encounters in any route, you can also rename locations and assign encounters to diferent location names
 If you install the patch with the ``REMOVE_LOCATION_LIMIT`` option, you can also create new locations
+### Trainer Data Editor
+Change trainer and their teams' information
+If you install the patch with the ``PERFECT_TRAINERS`` option, you get access to the fully customizable trainer editor
 ### Patcher
 Requires PMC to be installed on your CTRMap project
 The Patcher tool can install the most up-to-date features from PW2Code, this features are fully customizable so if you don't want some of them you can just disable them

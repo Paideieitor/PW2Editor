@@ -91,6 +91,9 @@ void Trainer::ComboBox(TrainerData& trainerData, const char* label, const std::v
 	ImGui::SetNextItemWidth(150.0f);
 	if (ImGui::TextInputComboBox(label, items, &selected))
 	{
+		if (field == TRAINER_TYPE && selected == PERFECT_TRAINER && !engine->PatchIsInstalled())
+			return;
+
 		SAVE_CHECK_REVERSE_EVENT(field, trainerData[field], selected,
 			engine->project->selectedTrainerIdx, trainerData);
 		trainerData[field] = selected;

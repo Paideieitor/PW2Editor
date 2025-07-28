@@ -58,3 +58,16 @@ void InsertTrainerPokemon(TrainerTeamData& team, u32 slot)
 	for (int idx = MAX_TEAM_SIZE - 2; idx >= (int)slot; --idx)
 		SwapTrainerPokemon(team, idx, idx + 1);
 }
+
+TrainerPokemonField GetFieldFromTeamSlot(u32 teamSlot, u32* slot)
+{
+	if (slot)
+		*slot = 0;
+	while (teamSlot > TRAINERPOKEMONDATA_MAX)
+	{
+		teamSlot -= TRAINERPOKEMONDATA_MAX;
+		if (slot)
+			++slot;
+	}
+	return (TrainerPokemonField)teamSlot;
+}

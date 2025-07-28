@@ -60,6 +60,7 @@ enum TrainerPokemonField
 {
 	TRAINER_DIFFICULTY,
 	TRAINER_SEX,
+	TRAINER_ABILITY_SLOT,
 	TRAINER_ABILITY,
 	TRAINER_LEVEL,
 	TRAINER_SPECIES,
@@ -110,6 +111,8 @@ void DefaultTrainerPokemon(TrainerTeamData& team, u32 slot);
 void SwapTrainerPokemon(TrainerTeamData& team, u32 slot1, u32 slot2);
 void RemoveTrainerPokemon(TrainerTeamData& team, u32 slot);
 void InsertTrainerPokemon(TrainerTeamData& team, u32 slot);
+
+TrainerPokemonField GetFieldFromTeamSlot(u32 teamSlot, u32* slot = nullptr);
 
 #define TRAINER_NULL -1
 #define TEAM_SLOT(slot, field) ((slot * TRAINERPOKEMONDATA_MAX) + field)

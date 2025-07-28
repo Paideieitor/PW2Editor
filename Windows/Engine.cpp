@@ -1558,17 +1558,54 @@ bool Engine::SaveTrainer(const TrainerData& trainerData, const string& file)
 	return true;
 }
 
-void GetBaseTrainerTeamData(TrainerTeamData& team, u32 slot, const FileStream& fileStream, u32& currentByte)
+void GetBaseMoveset(TrainerTeamData& team, u32 slot, const vector<LearnsetData>& learnsets)
+{
+	int species = team[TEAM_SLOT(slot, TRAINER_SPECIES)];
+	int level = team[TEAM_SLOT(slot, TRAINER_LEVEL)];
+
+	u32 moveSlot = 0;
+	const LearnsetData& learnset = learnsets[species];
+	for (int learnIdx = (int)learnset.size() - 1; learnIdx >= 0; --learnIdx)
+	{
+		if (moveSlot >= 4)
+			break;
+		int moveID = learnset[learnIdx][LEARN_MOVE_ID];
+		if (moveID == LEARNSET_NULL)
+			continue;
+
+		if (level >= learnset[learnIdx][LEARN_LEVEL])
+		{
+			team[TEAM_SLOT(slot, TRAINER_MOVE_1 + moveSlot)] = moveID;
+			++moveSlot;
+		}
+	}
+}
+
+void GetBaseTrainerTeamData(TrainerTeamData& team, u32 slot, const FileStream& fileStream, u32& currentByte, const vector<PersonalData>& personal)
 {
 	team[TEAM_SLOT(slot, TRAINER_DIFFICULTY)] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
 
 	u8 abilAndSex = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
 	team[TEAM_SLOT(slot, TRAINER_SEX)] = abilAndSex & 0x0F;
-	team[TEAM_SLOT(slot, TRAINER_ABILITY)] = (abilAndSex & 0xF0) >> 4;
+	team[TEAM_SLOT(slot, TRAINER_ABILITY_SLOT)] = (abilAndSex & 0xF0) >> 4;
 
 	team[TEAM_SLOT(slot, TRAINER_LEVEL)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
 	team[TEAM_SLOT(slot, TRAINER_SPECIES)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
 	team[TEAM_SLOT(slot, TRAINER_FORM)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
+
+	int species = team[TEAM_SLOT(slot, TRAINER_SPECIES)];
+	int abilitySlot = team[TEAM_SLOT(slot, TRAINER_ABILITY_SLOT)];
+	const PersonalData& personalData = personal[species];
+	if (abilitySlot == 0)
+		abilitySlot = 1;
+
+	team[TEAM_SLOT(slot, TRAINER_ABILITY)] = personalData[ABILITY_1 + (abilitySlot - 1)];
+
+	int ivs = 31 * team[TEAM_SLOT(slot, TRAINER_DIFFICULTY)] / 255;
+	for (u32 iv = 0; iv < STAT_COUNT; ++iv)
+		team[TEAM_SLOT(slot, TRAINER_HP_IV + iv)] = ivs;
+
+	team[TEAM_SLOT(slot, TRAINER_HP_PERCENT)] = 100;
 }
 
 bool Engine::LoadTrainerTeam(TrainerTeamData& team, const TrainerData& trainer, const string& file)
@@ -1584,10 +1621,11 @@ bool Engine::LoadTrainerTeam(TrainerTeamData& team, const TrainerData& trainer, 
 		switch (trainer[TRAINER_TYPE])
 		{
 		case SIMPLE_TRAINER:
-			GetBaseTrainerTeamData(team, slot, fileStream, currentByte);
+			GetBaseTrainerTeamData(team, slot, fileStream, currentByte, personal);
+			GetBaseMoveset(team, slot, learnset);
 			break;
 		case MOVE_TRAINER:
-			GetBaseTrainerTeamData(team, slot, fileStream, currentByte);
+			GetBaseTrainerTeamData(team, slot, fileStream, currentByte, personal);
 
 			team[TEAM_SLOT(slot, TRAINER_MOVE_1)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
 			team[TEAM_SLOT(slot, TRAINER_MOVE_2)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
@@ -1595,12 +1633,13 @@ bool Engine::LoadTrainerTeam(TrainerTeamData& team, const TrainerData& trainer, 
 			team[TEAM_SLOT(slot, TRAINER_MOVE_4)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
 			break;
 		case ITEM_TRAINER:
-			GetBaseTrainerTeamData(team, slot, fileStream, currentByte);
+			GetBaseTrainerTeamData(team, slot, fileStream, currentByte, personal);
+			GetBaseMoveset(team, slot, learnset);
 
 			team[TEAM_SLOT(slot, TRAINER_HELD_ITEM)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
 			break;
 		case GOOD_TRAINER:
-			GetBaseTrainerTeamData(team, slot, fileStream, currentByte);
+			GetBaseTrainerTeamData(team, slot, fileStream, currentByte, personal);
 
 			team[TEAM_SLOT(slot, TRAINER_HELD_ITEM)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
 
@@ -1627,7 +1666,7 @@ bool Engine::LoadTrainerTeam(TrainerTeamData& team, const TrainerData& trainer, 
 				u16 moveData = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
 
 				team[TEAM_SLOT(slot, TRAINER_MOVE_1 + moveSlot)] = moveData & 0x7FFF;
-				team[TEAM_SLOT(slot, TRAINER_MAX_PP_1 + moveSlot)] = (moveData & 0x8000 != 0);
+				team[TEAM_SLOT(slot, TRAINER_MAX_PP_1 + moveSlot)] = ((moveData & 0x8000) != 0);
 			}
 
 			team[TEAM_SLOT(slot, TRAINER_ABILITY)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
@@ -1653,7 +1692,7 @@ void SetBaseTrainerTeamData(const TrainerTeamData& team, u32 slot, FileStream& f
 	FileStreamPutBack<u8>(fileStream, (u8)team[TEAM_SLOT(slot, TRAINER_DIFFICULTY)]);
 
 	u8 abilAndSex = team[TEAM_SLOT(slot, TRAINER_SEX)] & 0x0F;
-	abilAndSex |= (team[TEAM_SLOT(slot, TRAINER_ABILITY)] << 4) & 0xF0;
+	abilAndSex |= (team[TEAM_SLOT(slot, TRAINER_ABILITY_SLOT)] << 4) & 0xF0;
 	FileStreamPutBack<u8>(fileStream, abilAndSex);
 
 	FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_LEVEL)]);
