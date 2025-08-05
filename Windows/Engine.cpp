@@ -36,6 +36,7 @@
 Engine::Engine(Project* const project) : project(project)
 {
 	string fsPath = project->path + PATH_SEPARATOR + FILESYSTEM_NAME;
+	Log(INFO, "Removing ``temp`` Folder");
 	if (PathExists(fsPath) && 
 		RemoveFolder(fsPath) == -1)
 	{
@@ -43,43 +44,68 @@ Engine::Engine(Project* const project) : project(project)
 		return;
 	}
 
+	Log(INFO, "Starting...");
 	if (!Start())
 	{
 		Log(CRITICAL, "Error starting Engine!");
 		return;
 	}
+	Log(INFO, "Start Succes!");
 
 	string buildSettingsPath = ConcatPath(project->path, PATCH_SETTINGS_FILE);
 	if (!PathExists(buildSettingsPath))
 		InstallPatch(buildSettingsPath);
 
+	Log(INFO, "Creating Modules");
 	// Engine
+	Log(INFO, "MenuBar Module");
 	modules.emplace_back(new MenuBar(this, ENGINE_GROUP));
 	// Pokémon
+	Log(INFO, "PokemonSearch Module");
 	modules.emplace_back(new PokemonSearch(this, POKEMON_GROUP));
+	Log(INFO, "PokemonForm Module");
 	modules.emplace_back(new PokemonForm(this, POKEMON_GROUP));
+	Log(INFO, "PokemonText Module");
 	modules.emplace_back(new PokemonText(this, POKEMON_GROUP));
+	Log(INFO, "Personal Module");
 	modules.emplace_back(new Personal(this, POKEMON_GROUP));
+	Log(INFO, "Learnset Module");
 	modules.emplace_back(new Learnset(this, POKEMON_GROUP));
+	Log(INFO, "Evolution Module");
 	modules.emplace_back(new Evolution(this, POKEMON_GROUP));
+	Log(INFO, "Child Module");
 	modules.emplace_back(new Child(this, POKEMON_GROUP));
 	// Items
+	Log(INFO, "ItemSearch Module");
 	modules.emplace_back(new ItemSearch(this, ITEM_GROUP));
+	Log(INFO, "Item Module");
 	modules.emplace_back(new Item(this, ITEM_GROUP));
+	Log(INFO, "ItemText Module");
 	modules.emplace_back(new ItemText(this, ITEM_GROUP));
 	// Moves
+	Log(INFO, "MoveSearch Module");
 	modules.emplace_back(new MoveSearch(this, MOVE_GROUP));
+	Log(INFO, "Move Module");
 	modules.emplace_back(new Move(this, MOVE_GROUP));
+	Log(INFO, "MoveText Module");
 	modules.emplace_back(new MoveText(this, MOVE_GROUP));
 	// Encounters
+	Log(INFO, "LocationSearch Module");
 	modules.emplace_back(new LocationSearch(this, ENCOUNTER_GROUP));
+	Log(INFO, "Zone Module");
 	modules.emplace_back(new Zone(this, ENCOUNTER_GROUP));
+	Log(INFO, "Encounter Module");
 	modules.emplace_back(new Encounter(this, ENCOUNTER_GROUP));
 	// Trainers
+	Log(INFO, "TrainerSearch Module");
 	modules.emplace_back(new TrainerSearch(this, TRAINER_GROUP));
+	Log(INFO, "Trainer Module");
 	modules.emplace_back(new Trainer(this, TRAINER_GROUP));
 	u32 trainerIdx = (u32)modules.size() - 1;
+	Log(INFO, "TrainerTeam Module");
 	modules.emplace_back(new TrainerTeam(this, TRAINER_GROUP, trainerIdx));
+
+	Log(INFO, "Engine Running!");
 }
 
 Engine::~Engine()
@@ -723,73 +749,90 @@ bool Engine::LoadTrainerData()
 bool Engine::Start()
 {
 	// Extract the text data
+	Log(INFO, "Loading Text Files...");
 	if (!LoadTextFiles())
 		return false;
 
+	Log(INFO, "Loading Personal NARC...");
 	// Extrat the data of every Pokémon
 	int loadedFiles = LoadDataNarc(PERSONAL_NARC_PATH, personalPath);
 	if (loadedFiles < 0)
 		return false;
 	personal.resize(loadedFiles);
 
+	Log(INFO, "Loading Learnset NARC...");
 	loadedFiles = LoadDataNarc(LEARNSET_NARC_PATH, learnsetPath);
 	if (loadedFiles < 0)
 		return false;
 	learnset.resize(loadedFiles);
 
+	Log(INFO, "Loading Evolution NARC...");
 	loadedFiles = LoadDataNarc(EVOLUTION_NARC_PATH, evolutionPath);
 	if (loadedFiles < 0)
 		return false;
 	evolution.resize(loadedFiles);
 
+	Log(INFO, "Loading Child NARC...");
 	loadedFiles = LoadDataNarc(CHILD_NARC_PATH, childPath);
 	if (loadedFiles < 0)
 		return false;
 	child.resize(loadedFiles);
 
+	Log(INFO, "Loading Pokemon...");
 	if (!LoadPokemonData())
 		return false;
 
+	Log(INFO, "Loading Item NARC...");
 	loadedFiles = LoadDataNarc(ITEM_NARC_PATH, itemPath);
 	if (loadedFiles < 0)
 		return false;
 	items.resize(loadedFiles);
 
+	Log(INFO, "Loading Items...");
 	if (!LoadItemData())
 		return false;
 
+	Log(INFO, "Loading Move NARC...");
 	loadedFiles = LoadDataNarc(MOVE_NARC_PATH, movePath);
 	if (loadedFiles < 0)
 		return false;
 	moves.resize(loadedFiles);
 
+	Log(INFO, "Loading Move Animation NARC...");
 	loadedFiles = LoadDataNarc(MOVE_ANIM_NARC_PATH, moveAnimPath);
 	if (loadedFiles < 0)
 		return false;
 	moveAnims.resize(loadedFiles);
 
+	Log(INFO, "Loading Moves...");
 	if (!LoadMoveData())
 		return false;
 
+	Log(INFO, "Loading Zone NARC...");
 	loadedFiles = LoadDataNarc(ZONE_NARC_PATH, zonePath);
 	if (loadedFiles < 0)
 		return false;
 
+	Log(INFO, "Loading Encounter NARC...");
 	loadedFiles = LoadDataNarc(ENCOUNTER_NARC_PATH, encounterPath);
 	if (loadedFiles < 0)
 		return false;
 	
+	Log(INFO, "Loading Locations...");
 	if (!LoadLocations(loadedFiles))
 		return false;
 
+	Log(INFO, "Loading Trainer NARC...");
 	loadedFiles = LoadDataNarc(TRAINER_NARC_PATH, trainerPath);
 	if (loadedFiles < 0)
 		return false;
 
+	Log(INFO, "Loading Trainer Team NARC...");
 	loadedFiles = LoadDataNarc(TRAINER_TEAM_NARC_PATH, trainerTeamPath);
 	if (loadedFiles < 0)
 		return false;
 
+	Log(INFO, "Loading Trainers...");
 	if (!LoadTrainerData())
 		return false;
 

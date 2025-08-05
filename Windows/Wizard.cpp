@@ -41,6 +41,7 @@ ReturnState Wizard::RenderGUI()
 
 	if (ImGui::Button("Create Project"))
 	{
+		Log(INFO, "Wizard Creating Project");
 		switch (CreateProject())
 		{
 		case OK:
@@ -57,6 +58,7 @@ ReturnState Wizard::RenderGUI()
 
 	if (ImGui::Button("Open Project"))
 	{
+		Log(INFO, "Wizard Opening Project!");
 		UpdateProjectListOrderOpen(selectedIdx);
 		ImGui::End();
 		return STOP;
@@ -74,6 +76,8 @@ ReturnState Wizard::RenderGUI()
 		ImGui::Text("Are you sure you want to delete this project? This can't be undone!");
 		if (ImGui::Button("Delete"))
 		{
+			Log(INFO, "Wizard Deleteing Project!");
+
 			string projectPath = string(PROJECTS_PATH) + PATH_SEPARATOR + projectList[selectedIdx].name;
 			if (RemoveFolder(projectPath) != -1)
 			{
@@ -85,6 +89,8 @@ ReturnState Wizard::RenderGUI()
 
 				UpdateProjectListOrderDelete(selectedIdx);
 				showDeleteMessage = false;
+
+				Log(INFO, "Wizard Deleted Project at %s!", projectPath.c_str());
 			}
 			else
 			{
@@ -308,11 +314,13 @@ ReturnState Wizard::CreateProject()
 
 		UpdateProjectListOrderAdd();
 
+		Log(INFO, "Created Project %s", project.name.c_str());
 		return OK;
 	}
 	case NFD_CANCEL:
 		return STOP;
 	}
 
+	Log(INFO, "Error Creating Project!");
 	return ERROR;
 }
