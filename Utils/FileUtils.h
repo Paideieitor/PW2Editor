@@ -41,11 +41,14 @@ vector<string> GetFolderElementList(const string& path);
 void NormalizePathSeparator(string& path);
 
 // Concatenate 2 strings with a path separator
-string ConcatPath(const string& path, const string& concat);
+string PathConcat(const string& path, const string& concat);
 // Returns the given path string without the file portion
 string RemoveFileFromPath(const string& path);
 // Returns the file portion of the given path string
 string GetFileFromPath(const string& path, bool checkFile = true);
+string PathRemoveExtension(const string& path);
+string PathGetLastName(const string& path);
+string PathEraseLastName(const string& path);
 // Takes a full path and separates the file portion from the original path string
 bool SeparatePathAndFile(string& path, string& file);
 

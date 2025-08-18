@@ -20,6 +20,8 @@ std::string  WideToUtf8(const std::wstring& wstr);
 vector<string> StringToStringVector(const string& input, char separator);
 vector<u32> StringToU32Vector(const string& input, char separator);
 
+void CleanLine(string& line);
+
 string LowerCase(const string& input);
 string UpperCase(const string& input);
 

@@ -22,6 +22,8 @@ protected:
 
 private:
 
+	vector<string> GetProjectPaths(const string& path);
+	void SetProjectPaths(const string& path);
 	void LoadProjectList();
 
 	void SortProjectListOrder();

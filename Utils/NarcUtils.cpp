@@ -1,9 +1,9 @@
 #include <stack>
+#include <map>
 
 #include "System.h"
 
 #include "Utils/NarcUtils.h"
-#include "Utils/FileUtils.h"
 
 struct NarcHeader
 {
@@ -332,4 +332,135 @@ int NarcUnpackExclude(const string& path, const string& savePath, const vector<u
 	delete[] exclude;
 	ReleaseFileStream(fileStream);
 	return extractedFiles;
+}
+
+FileStream NarcUnpackSingleToMemory(const string& path, u32 fileIdx)
+{
+	Log(INFO, "Processing NARC %s", path.c_str());
+
+	FileStream fileStream;
+	if (!LoadFileStream(fileStream, path))
+	{
+		Log(WARNING, "    Unable to load FileStream");
+		return FileStream();
+	}
+
+	Narc narc;
+	if (!VerifyNarc(narc, fileStream, path))
+	{
+		Log(WARNING, "    Unable to verify NARC header");
+		ReleaseFileStream(fileStream);
+		return FileStream();
+	}
+
+	if (fileIdx >= narc.fileAllocTable.fileCount)
+	{
+		Log(WARNING, "    File index is outside of the NARC");
+		ReleaseFileStream(fileStream);
+		return FileStream();
+	}
+
+	u32 offset = narc.header.chunkSize + narc.fileAllocTable.chunkSize + narc.fileNameTable.chunkSize + 8 + narc.fileAllocTableEntries[fileIdx].start;
+	u32 bufferSize = narc.fileAllocTableEntries[fileIdx].end - narc.fileAllocTableEntries[fileIdx].start;
+
+	FileStream output;
+	if (!LoadEmptyFileStream(output))
+	{
+		Log(WARNING, "    Failed to load sub stream for file %d", fileIdx);
+		ReleaseFileStream(fileStream);
+		return FileStream();
+	}
+
+	FileStreamBufferWriteBack(output, FileStreamGetDataPtr(fileStream, offset), bufferSize);
+	ReleaseFileStream(fileStream);
+
+	Log(INFO, "    Processing success");
+	return output;
+}
+
+FileStream GetFileFromNARCFile(const string& narcPath, u32 fileIdx)
+{
+	Log(INFO, "Unpacking NARC data");
+	FileStream output = NarcUnpackSingleToMemory(narcPath, fileIdx);
+
+	if (!output.data)
+	{
+		Log(CRITICAL, "   Failed to unpack NARC data");
+		return FileStream();
+	}
+
+	Log(INFO, "    Unpacking success");
+	return output;
+}
+
+FileStream GetFileFromNARCDirectory(const string& narcDir, u32 fileIdx)
+{
+	Log(INFO, "Finding NARC data");
+	string filePath = PathConcat(narcDir, to_string(fileIdx));
+	if (!PathExists(filePath))
+	{
+		Log(CRITICAL, "   NARC file doesn't exist");
+		return FileStream();
+	}
+	if (!IsFilePath(filePath))
+	{
+		Log(CRITICAL, "   NARC file is a folder");
+		return FileStream();
+	}
+
+	FileStream output;
+	if (!LoadFileStream(output, filePath))
+	{
+		Log(CRITICAL, "   NARC file couldn't be loaded");
+		return FileStream();
+	}
+
+	Log(INFO, "    Found NARC file");
+	return output;
+}
+
+FileStream GetFileFromNARCFileSystem(const string& filesystem, const string& narcPath, u32 fileIdx)
+{
+	string fullNarcPath = PathConcat(filesystem, narcPath);
+	Log(INFO, "Loading file %d in NARC %s", fileIdx, fullNarcPath.c_str());
+	if (!PathExists(fullNarcPath))
+	{
+		Log(CRITICAL, "   NARC doesn't exist");
+		return FileStream();
+	}
+
+	FileStream romFile;
+	if (IsFilePath(fullNarcPath))
+		romFile = GetFileFromNARCFile(fullNarcPath, fileIdx);
+	else
+		romFile = GetFileFromNARCDirectory(fullNarcPath, fileIdx);
+
+	Log(INFO, "    Loading NARC finished");
+	return romFile;
+}
+
+FileStream LoadFileFromNarc(const string& ctrDir, const string& romDir, const string& narcPath, u32 fileIdx)
+{
+	Log(INFO, "Getting file %d in NARC %s", fileIdx, narcPath.c_str());
+
+	FileStream output;
+
+	// Try loading data from the CTRMap project
+	const string ctrFileSytem = PathConcat(ctrDir, CTRMAP_FILESYSTEM_DIR);
+	output = GetFileFromNARCFileSystem(ctrFileSytem, narcPath, fileIdx);
+	if (!output.data)
+	{
+		// Try loading data from the base ROM
+		const string romFileSytem = PathConcat(romDir, ROM_FILESYSTEM_DIR);
+		output = GetFileFromNARCFileSystem(romFileSytem, narcPath, fileIdx);
+	}
+
+	if (!output.data)
+	{
+		Log(CRITICAL, "    Getting failed");
+		return FileStream();
+	}
+
+	Log(INFO, "    Getting success");
+	return output;
 }

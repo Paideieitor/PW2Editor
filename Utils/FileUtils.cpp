@@ -3,6 +3,7 @@
 #include "System.h"
 
 #include "Utils/FileUtils.h"
+#include "FileUtils.h"
 
 bool PathExists(const string& path)
 {
@@ -129,7 +130,7 @@ void NormalizePathSeparator(string& path)
 			path[idx] = PATH_SEPARATOR;
 }
 
-string ConcatPath(const string& path, const string& concat)
+string PathConcat(const string& path, const string& concat)
 {
 	if (path.empty())
 		return concat;
@@ -140,8 +141,8 @@ string ConcatPath(const string& path, const string& concat)
 
 string RemoveFileFromPath(const string& path)
 {
-	int lastSlash = (int)path.find_last_of(PATH_SEPARATOR);
-	if (lastSlash < 0)
+	size_t lastSlash = path.find_last_of(PATH_SEPARATOR);
+	if (lastSlash == string::npos)
 		return "";
 	return path.substr(0, lastSlash);
 }
@@ -151,8 +152,36 @@ string GetFileFromPath(const string& path, bool checkFile)
 	if (checkFile && !IsFilePath(path))
 		return string();
 
-	u32 lastSlash = (u32)path.find_last_of(PATH_SEPARATOR) + 1;
-	return path.substr(lastSlash);
+	size_t lastSlash = path.find_last_of(PATH_SEPARATOR);
+	if (lastSlash == string::npos)
+		return path;
+	return path.substr(lastSlash + 1);
+}
+
+string PathRemoveExtension(const string& path)
+{
+	string extension = GetFileExtension(path);
+	if (extension.empty())
+		return path;
+
+	return path.substr(0, path.length() - extension.length() - 1);
+}
+
+string PathGetLastName(const string& path)
+{
+	string file = GetFileFromPath(path, false);
+	if (file.empty())
+		return string();
+
+	return PathRemoveExtension(file);
+}
+
+string PathEraseLastName(const string& path)
+{
+	size_t lastSlash = path.find_last_of(PATH_SEPARATOR);
+	if (lastSlash == string::npos)
+		return path;
+	return path.substr(0, lastSlash);
 }
 
 bool SeparatePathAndFile(string& path, string& file)
@@ -160,9 +189,17 @@ bool SeparatePathAndFile(string& path, string& file)
 	if (!IsFilePath(path))
 		return false;
 
-	u32 lastSlash = (u32)path.find_last_of(PATH_SEPARATOR) + 1;
-	file = path.substr(lastSlash);
-	path = path.substr(0, lastSlash - 1);
+	size_t lastSlash = path.find_last_of(PATH_SEPARATOR) + 1;
+	if (lastSlash == string::npos)
+	{
+		file = path;
+		path = string();
+	}
+	else
+	{
+		file = path.substr(lastSlash);
+		path = path.substr(0, lastSlash - 1);
+	}
 
 	return true;
 }

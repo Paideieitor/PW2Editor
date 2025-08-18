@@ -10,236 +10,103 @@
 #include "Windows/Engine.h"
 
 #include "Modules/Module.h"
-#include "Modules/MenuBar.h"
-#include "Modules/Pokemon/PokemonSearch.h"
-#include "Modules/Pokemon/PokemonForm.h"
-#include "Modules/Pokemon/PokemonText.h"
-#include "Modules/Pokemon/Personal.h"
-#include "Modules/Pokemon/Learnset.h"
-#include "Modules/Pokemon/Evolution.h"
-#include "Modules/Pokemon/Child.h"
-#include "Modules/Item/ItemSearch.h"
-#include "Modules/Item/Item.h"
-#include "Modules/Item/ItemText.h"
-#include "Modules/Move/MoveSearch.h"
-#include "Modules/Move/Move.h"
-#include "Modules/Move/MoveText.h"
-#include "Modules/Encounter/LocationSearch.h"
-#include "Modules/Encounter/Zone.h"
-#include "Modules/Encounter/Encounter.h"
-#include "Modules/Trainer/TrainerSearch.h"
-#include "Modules/Trainer/Trainer.h"
-#include "Modules/Trainer/TrainerTeam.h"
+#include "Modules/List.h"
+#include "Modules/Pokemon.h"
+#include "Modules/Item.h"
+#include "Modules/Move.h"
+#include "Modules/Trainer.h"
+#include "Modules/Encounter.h"
 
-#include "Data/Project.h"
+#define TEXT_NARC_PATH "0\\0\\2"
+
+enum DataNarc
+{
+	POKEMON_NARCS,
+	ITEM_NARCS,
+	MOVE_NARCS,
+	TRAINER_NARCS,
+	ZONE_NARCS,
+	ENCOUNTER_NARCS,
+};
+struct NarcPath
+{
+	vector<string> paths[2];
+};
+const vector<NarcPath> narcPaths = {
+	// POKEMONS -> PERSONAL, LEARNSET, EVOLUTION, CHILD
+	{ vector<string>({"0\\1\\6", "0\\1\\8", "0\\1\\9", "0\\2\\0", "0\\2\\0"}), vector<string>({"0\\1\\6", "0\\1\\8", "0\\1\\9", "0\\2\\0", "0\\2\\0"}) },
+	// ITEMS
+	{ vector<string>({"0\\2\\4"}) , vector<string>({"0\\2\\4"}) },
+	// MOVES -> DATA, ANIMATIONS
+	{ vector<string>({"0\\2\\1", "0\\6\\6"}) , vector<string>({"0\\2\\1", "0\\6\\5"}) },
+	// TRAINERS -> DATA, TEAMS
+	{ vector<string>({"0\\9\\2", "0\\9\\3"}) , vector<string>({"0\\9\\1", "0\\9\\2"}) },
+	// ZONES
+	{ vector<string>({"0\\1\\2"}) , vector<string>({"0\\1\\2"}) },
+	// ENCOUNTERS
+	{ vector<string>({"1\\2\\6"}) , vector<string>({"1\\2\\7"}) },
+};
+
+const vector<string> alternateVersions = {
+	"POKEMON B2",
+	"POKEMON W2",
+};
+
+const vector<string> validGameCodes = {
+	"IRDO",
+};
 
 Engine::Engine(Project* const project) : project(project)
 {
-	string fsPath = project->path + PATH_SEPARATOR + FILESYSTEM_NAME;
-	Log(INFO, "Removing ``temp`` Folder");
-	if (PathExists(fsPath) && 
-		RemoveFolder(fsPath) == -1)
+	Log(INFO, "Constructing engine");
+
+	if (!LoadEngine())
 	{
-		Log(CRITICAL, "Error removing temp forlder!");
-		return;
+		Quit(CONSTRUCTOR_LOAD_QUIT);
 	}
 
-	Log(INFO, "Starting...");
-	if (!Start())
-	{
-		Log(CRITICAL, "Error starting Engine!");
-		return;
-	}
-	Log(INFO, "Start Succes!");
-
-	string buildSettingsPath = ConcatPath(project->path, PATCH_SETTINGS_FILE);
-	if (!PathExists(buildSettingsPath))
-		InstallPatch(buildSettingsPath);
-
-	Log(INFO, "Creating Modules");
-	// Engine
-	Log(INFO, "MenuBar Module");
-	modules.emplace_back(new MenuBar(this, ENGINE_GROUP));
-	// Pokémon
-	Log(INFO, "PokemonSearch Module");
-	modules.emplace_back(new PokemonSearch(this, POKEMON_GROUP));
-	Log(INFO, "PokemonForm Module");
-	modules.emplace_back(new PokemonForm(this, POKEMON_GROUP));
-	Log(INFO, "PokemonText Module");
-	modules.emplace_back(new PokemonText(this, POKEMON_GROUP));
-	Log(INFO, "Personal Module");
-	modules.emplace_back(new Personal(this, POKEMON_GROUP));
-	Log(INFO, "Learnset Module");
-	modules.emplace_back(new Learnset(this, POKEMON_GROUP));
-	Log(INFO, "Evolution Module");
-	modules.emplace_back(new Evolution(this, POKEMON_GROUP));
-	Log(INFO, "Child Module");
-	modules.emplace_back(new Child(this, POKEMON_GROUP));
-	// Items
-	Log(INFO, "ItemSearch Module");
-	modules.emplace_back(new ItemSearch(this, ITEM_GROUP));
-	Log(INFO, "Item Module");
-	modules.emplace_back(new Item(this, ITEM_GROUP));
-	Log(INFO, "ItemText Module");
-	modules.emplace_back(new ItemText(this, ITEM_GROUP));
-	// Moves
-	Log(INFO, "MoveSearch Module");
-	modules.emplace_back(new MoveSearch(this, MOVE_GROUP));
-	Log(INFO, "Move Module");
-	modules.emplace_back(new Move(this, MOVE_GROUP));
-	Log(INFO, "MoveText Module");
-	modules.emplace_back(new MoveText(this, MOVE_GROUP));
-	// Encounters
-	Log(INFO, "LocationSearch Module");
-	modules.emplace_back(new LocationSearch(this, ENCOUNTER_GROUP));
-	Log(INFO, "Zone Module");
-	modules.emplace_back(new Zone(this, ENCOUNTER_GROUP));
-	Log(INFO, "Encounter Module");
-	modules.emplace_back(new Encounter(this, ENCOUNTER_GROUP));
-	// Trainers
-	Log(INFO, "TrainerSearch Module");
-	modules.emplace_back(new TrainerSearch(this, TRAINER_GROUP));
-	Log(INFO, "Trainer Module");
-	modules.emplace_back(new Trainer(this, TRAINER_GROUP));
-	u32 trainerIdx = (u32)modules.size() - 1;
-	Log(INFO, "TrainerTeam Module");
-	modules.emplace_back(new TrainerTeam(this, TRAINER_GROUP, trainerIdx));
-
-	Log(INFO, "Engine Running!");
+	Log(INFO, "    Constructing success");
 }
 
 Engine::~Engine()
 {
-	for (u32 idx = 0; idx < (u32)modules.size(); ++idx)
-		delete modules[idx];
+	Log(INFO, "Destroying engine");
 
-	for (u32 idx = 0; idx < (u32)reverseEvents.size(); ++idx)
-		delete reverseEvents[idx].value;
+	ClearEngine();
+
+	Log(INFO, "    Destroying success");
 }
 
-ReturnState Engine::RenderGUI()
+bool Engine::UsavedData()
 {
-	if (!quit.empty())
+	for (u32 idx = 0; idx < (u32)datas.size(); ++idx)
 	{
-		ReturnState exitState = OK;
-		ImGui::Begin("The engine needs to shut down");
-		ImGui::Text(quit);
-		if (ImGui::Button("OK"))
-			exitState = STOP;
-		ImGui::End();
-		return exitState;
+		Data* data = datas[idx];
+		if (data->HasSaveEvents())
+			return true;
+	}
+	return false;
+}
+
+void Engine::Save()
+{
+	for (u32 idx = 0; idx < (u32)datas.size(); ++idx)
+	{
+		Data* data = datas[idx];
+		data->Save(project);
 	}
 
-	if (GetCurrentPokemon() == nullptr)
-		return ERROR;
-
-	project->width = (u32)width;
-	project->height = (u32)height;
-
-	ReturnState moduleState = OK;
-	for (u32 idx = 0; idx < (u32)modules.size(); ++idx)
-	{
-		if (modules[idx]->group == ENGINE_GROUP ||
-			modules[idx]->group == project->group)
-		{
-			moduleState = modules[idx]->RenderGUI();
-			if (moduleState != OK)
-				break;
-		}
-	}
-		
-	return moduleState;
-}
-
-void Engine::SetCurrentPokemon(u32 idx, u32 form)
-{
-	if (project->selectedPkmIdx != idx)
-		form = 0;
-
-	project->selectedPkmIdx = idx;
-	project->selectedPkmForm = form;
-
-	Pokemon* pkm = &(pokemon[idx]);
-	if (project->selectedPkmForm > 0)
-		pkm = &(pkm->forms[form - 1]);
-	currentPkm = pkm;
-}
-
-void Engine::SetCurrentItem(u32 idx)
-{
-	project->selectedItemIdx = idx;
-}
-
-void Engine::SetCurrentMove(u32 idx)
-{
-	project->selectedMoveIdx = idx;
-}
-
-void Engine::SetCurrentLocation(u32 idx, u32 zoneIdx)
-{
-	if (project->selectedLocationIdx != idx)
-	{
-		if (!locations[idx].empty())
-			zoneIdx = locations[idx][0];
-		else
-			zoneIdx = 0;
-	}
-
-	project->selectedLocationIdx = idx;
-	project->selectedZoneIdx = zoneIdx;
-}
-
-void Engine::SetCurrentTrainer(u32 idx)
-{
-	project->selectedTrainerIdx = idx;
-}
-
-void Engine::AddMove()
-{
-	moveNames.emplace_back(string("Move ") + to_string(moveNames.size()));
-	u32 moveIdx = (u32)moveNames.size() - 1;
-
-	if (moveIdx >= (u32)moves.size())
-		moves.resize(moveIdx + 1);
-	MoveData& moveData = moves[moveIdx];
-	for (u32 idx = 0; idx < (u32)moveData.size(); ++idx)
-		moveData[idx] = 0;
-
-	if (moveIdx >= (u32)moveNamesMayus.size())
-		moveNamesMayus.resize(moveIdx + 1);
-	moveNamesMayus[moveIdx] = UpperCase(moveNames[moveIdx]);
-
-	if (moveIdx * 3 >= (u32)moveUses.size())
-		moveUses.resize((moveIdx + 1) * 3);
-	string battlePrefix[] = { "", "The wild ", "The foe's " };
-	string battleMessage;
-	battleMessage.reserve(64);
-	for (u32 idx = 0; idx < 3; ++idx)
-	{
-		battleMessage.clear();
-		battleMessage = battlePrefix[idx] + u8"[Pokémon Nick(0)] used\n" + moveNames[moveIdx] + "!";
-		moveUses[(moveIdx * 3) + idx] = battleMessage;
-	}
-
-	if (moveIdx >= (u32)moveDescriptions.size())
-		moveDescriptions.resize((moveIdx + 1));
-	moveDescriptions[moveIdx] = "";
-
-	if (moveIdx >= (u32)moveAnims.size())
-		moveAnims.resize((moveIdx + 1));
-	LoadFileStream(moveAnims[moveIdx], MAKE_FILE_PATH(moveAnimPath, 1));
-
-	SendGroupEvent(MOVE_GROUP);
+	SaveProjectSettings(*project);
 }
 
 bool Engine::PMCCheck()
 {
-	return PathExists(ConcatPath(project->ctrMapProjectPath, PMC_CHECK_PATH));
+	return PathExists(PathConcat(project->ctrMapProjectDir, PMC_CHECK_PATH));
 }
 
 bool Engine::PatchIsInstalled()
 {
-	return PathExists(ConcatPath(project->path, PATCH_INSTALLED_FILE));
+	return PathExists(PathConcat(project->path, PATCH_INSTALLED_FILE));
 }
 
 void Engine::InstallPatch(string settingsPath)
@@ -249,7 +116,7 @@ void Engine::InstallPatch(string settingsPath)
 		toolsDir = DEV_TOOLS_DIR;
 
 	string buildSettings = "SET PROJECT_DIR=";
-	buildSettings += project->ctrMapProjectPath + PATH_SEPARATOR;
+	buildSettings += project->ctrMapProjectDir + PATH_SEPARATOR;
 	buildSettings += '\n';
 
 	buildSettings += "SET CTRMAP_DIR=";
@@ -257,7 +124,7 @@ void Engine::InstallPatch(string settingsPath)
 	buildSettings += '\n';
 
 	buildSettings += "SET ARM_NONE_EABI_DIR=";
-	buildSettings += ConcatPath(toolsDir, "Arm-None-Eabi\\bin\\");
+	buildSettings += PathConcat(toolsDir, "Arm-None-Eabi\\bin\\");
 	buildSettings += '\n';
 
 	buildSettings += "SET JAVA_DIR=";
@@ -278,11 +145,11 @@ string GetBuilderPath()
 
 	builderPath = DEV_BUILDER_DIR;
 #ifdef _WIN64
-	builderPath = ConcatPath(builderPath, "x64");
+	builderPath = PathConcat(builderPath, "x64");
 #else
 	builderPath = ConcatPath(builderPath, "x86");
 #endif
-	builderPath = ConcatPath(builderPath, "Release");
+	builderPath = PathConcat(builderPath, "Release");
 	return builderPath;
 }
 
@@ -293,7 +160,7 @@ void Engine::BuildPatch()
 	if (!PathExists(patchPath))
 		patchPath = DEV_PATCH_DIR;
 
-	string command = PATH_FORMAT(ConcatPath(builderPath, PATCH_BUILDER_FILE)) + " ";
+	string command = PATH_FORMAT(PathConcat(builderPath, PATCH_BUILDER_FILE)) + " ";
 	command += "-rebuild ";
 	command += PATH_FORMAT(patchPath) + " ";
 	command += "-whitelist-all ";
@@ -311,7 +178,7 @@ void Engine::UninstallPatch()
 	if (!PathExists(patchPath))
 		patchPath = DEV_PATCH_DIR;
 
-	string command = PATH_FORMAT(ConcatPath(builderPath, "PW2Builder.exe")) + " ";
+	string command = PATH_FORMAT(PathConcat(builderPath, "PW2Builder.exe")) + " ";
 	command += "-uninstall ";
 	command += PATH_FORMAT(patchPath) + " ";
 	command += "-custom-build ";
@@ -322,1534 +189,530 @@ void Engine::UninstallPatch()
 	system(PATH_FORMAT(command).c_str());
 }
 
-void LoadText(const string& narcPath, u32 fileID, const string& outputPath, vector<u16>& missingTextFiles)
+void Engine::Quit(const string& msg)
 {
-	string ctrPath = MAKE_FILE_PATH(narcPath, fileID);
-	if (!PathExists(ctrPath))
-		missingTextFiles.emplace_back(fileID);
-	else
-		CopyFile(ctrPath, outputPath);
+	quit = true;
+	quitMessage = msg;
 }
-#define LOAD_TEXT(fileID, outputPath) LoadText(ctrTextNarcPath, fileID, outputPath, missingTextFiles)
 
-bool Engine::LoadTextFiles()
+vector<string>* Engine::GetTextFile(u32 idx)
 {
-	vector<u16> missingTextFiles;
-
-	// The path where the text files are stored in the CTRMap project
-	string ctrTextNarcPath = project->ctrMapProjectPath + PATH_SEPARATOR + CTRMAP_FILESYSTEM_PATH + PATH_SEPARATOR + TEXT_NARC_PATH;
-	// The path to the text NARC file in the extracted ROM files
-	string romTextNarcPath = project->romPath + PATH_SEPARATOR + ROM_FILESYSTEM_PATH + PATH_SEPARATOR + TEXT_NARC_PATH;
-	// Create the path where the text files will be stored
-	string textNarcPath = project->path + PATH_SEPARATOR + FILESYSTEM_NAME + PATH_SEPARATOR + TEXT_NARC_PATH;
-
-	// If the file is not extracted in the CTRMap project
-	// add all the needed text files to the NARC extraction list
-	if (!PathExists(ctrTextNarcPath))
+	unordered_map<u32, vector<string>>::iterator itr = textFiles.find(idx);
+	if (itr == textFiles.end())
 	{
-		if (!PathExists(romTextNarcPath) || !IsFilePath(romTextNarcPath))
+		Log(CRITICAL, "Text file %d is not loaded", idx);
+		return nullptr;
+	}
+	return &(itr->second);
+}
+
+u32 Engine::GetConcatDataCount(Data* data, u32 idx)
+{
+	return data->GetCount(project, idx);
+}
+
+u32 Engine::GetConcatDataIdx(Data* data, u32 idx, u32 concatIdx)
+{
+	return data->GetConcat(idx, concatIdx);
+}
+
+bool Engine::StartAction(u32* selectable, u32 selected, u32 group)
+{
+	if (actionIdx != -1)
+	{
+		Log(CRITICAL, "Can't start an action if there is already one in progress");
+		return false;
+	}
+
+	actions.emplace_back(selectable, selected, group);
+	actionIdx = (int)actions.size() - 1;
+	return true;
+}
+
+bool Engine::EndAction()
+{
+	if (actionIdx == -1)
+	{
+		Log(CRITICAL, "Can't end an action if there is none in progress");
+		return false;
+	}
+	actionIdx = -1;
+	return true;
+}
+
+int Engine::GetDataValue(Data* data, u32 idx, u32 field)
+{
+	return data->GetValue(project, idx, field);
+}
+
+u32 Engine::SetDataValue(Data* data, u32 idx, u32 field, int value)
+{
+	if (actionIdx == -1)
+	{
+		Log(CRITICAL, "Can't set a data value outside of an action");
+		return field;
+	}
+
+	return data->SetValue(idx, field, value, (u32)actionIdx);
+}
+
+void Engine::InputInt(Data* data, u32 idx, u32 field, u32* selectable, u32 selected, u32 group, const string& label, int max, int min)
+{
+	int value = data->GetValue(project, idx, field);
+	if (value == data->nullValue)
+	{
+		if (ImGui::Button(LABEL(label + "Null", (int)field)))
 		{
-			Log(CRITICAL, "Couldn't load project %s, game text NARC not found", project->name.c_str());
-			return false;
+			StartAction(selectable, selected, group);
+			SetDataValue(data, idx, field, min);
+			EndAction();
 		}
-		
-		missingTextFiles.emplace_back(PKM_NAME_FILE_ID);
-		missingTextFiles.emplace_back(PKM_FORM_NAME_FILE_ID);
-		missingTextFiles.emplace_back(PKM_DESCRIPTION_FILE_ID);
-		missingTextFiles.emplace_back(PKM_TITLE_FILE_ID);
-
-		missingTextFiles.emplace_back(TYPE_NAME_FILE_ID);
-
-		missingTextFiles.emplace_back(ABILITY_NAME_FILE_ID);
-
-		missingTextFiles.emplace_back(ITEM_NAME_FILE_ID);
-		missingTextFiles.emplace_back(ITEM_DESCRIPTION_FILE_ID);
-		missingTextFiles.emplace_back(ITEM_NAME_COLOR_FILE_ID);
-		missingTextFiles.emplace_back(ITEM_NAME_PLURAL_FILE_ID);
-
-		missingTextFiles.emplace_back(MOVE_NAME_FILE_ID);
-		missingTextFiles.emplace_back(MOVE_NAME_MAYUS_FILE_ID);
-		missingTextFiles.emplace_back(MOVE_USE_FILE_ID);
-		missingTextFiles.emplace_back(MOVE_DESCRIPTION_FILE_ID);
-
-		missingTextFiles.emplace_back(LOCATION_NAME_FILE_ID);
-
-		missingTextFiles.emplace_back(TRAINER_NAME_FILE_ID);
-		missingTextFiles.emplace_back(TRAINER_CLASS_FILE_ID);
-
-		missingTextFiles.emplace_back(NATURE_FILE_ID);
-	}
-
-	// The file where the Pokémon text data is stored
-	string pkmNamePath = MAKE_FILE_PATH(textNarcPath, PKM_NAME_FILE_ID);
-	string formNamePath = MAKE_FILE_PATH(textNarcPath, PKM_FORM_NAME_FILE_ID);
-	string pkmDescriptionPath = MAKE_FILE_PATH(textNarcPath, PKM_DESCRIPTION_FILE_ID);
-	string pkmTitlePath = MAKE_FILE_PATH(textNarcPath, PKM_TITLE_FILE_ID);
-
-	// The file where the Type text data is stored
-	string typeNamePath = MAKE_FILE_PATH(textNarcPath, TYPE_NAME_FILE_ID);
-
-	// The file where the Abilities text data is stored
-	string abilityNamePath = MAKE_FILE_PATH(textNarcPath, ABILITY_NAME_FILE_ID);
-
-	// The file where the Item text data is stored
-	string itemNamePath = MAKE_FILE_PATH(textNarcPath, ITEM_NAME_FILE_ID);
-	string itemDescriptionPath = MAKE_FILE_PATH(textNarcPath, ITEM_DESCRIPTION_FILE_ID);
-	string itemColorPath = MAKE_FILE_PATH(textNarcPath, ITEM_NAME_COLOR_FILE_ID);
-	string itemPluralPath = MAKE_FILE_PATH(textNarcPath, ITEM_NAME_PLURAL_FILE_ID);
-
-	// The file where the Move text data is stored
-	string moveNamePath = MAKE_FILE_PATH(textNarcPath, MOVE_NAME_FILE_ID);
-	string moveNameMayusPath = MAKE_FILE_PATH(textNarcPath, MOVE_NAME_MAYUS_FILE_ID);
-	string moveUsePath = MAKE_FILE_PATH(textNarcPath, MOVE_USE_FILE_ID);
-	string moveDescriptionPath = MAKE_FILE_PATH(textNarcPath, MOVE_DESCRIPTION_FILE_ID);
-
-	string locationNamePath = MAKE_FILE_PATH(textNarcPath, LOCATION_NAME_FILE_ID);
-
-	string trainerNamePath = MAKE_FILE_PATH(textNarcPath, TRAINER_NAME_FILE_ID);
-	string trainerClassPath = MAKE_FILE_PATH(textNarcPath, TRAINER_CLASS_FILE_ID);
-
-	string naturePath = MAKE_FILE_PATH(textNarcPath, NATURE_FILE_ID);
-
-	// If the missing files are not already set
-	if (!missingTextFiles.size())
-	{
-		// Check if the files we need are already extracted in the CTRMap project
-		// If they are not, add them to the missing files list
-		LOAD_TEXT(PKM_NAME_FILE_ID, pkmNamePath);
-		LOAD_TEXT(PKM_FORM_NAME_FILE_ID, formNamePath);
-		LOAD_TEXT(PKM_DESCRIPTION_FILE_ID, pkmDescriptionPath);
-		LOAD_TEXT(PKM_TITLE_FILE_ID, pkmTitlePath);
-
-		LOAD_TEXT(TYPE_NAME_FILE_ID, typeNamePath);
-
-		LOAD_TEXT(ABILITY_NAME_FILE_ID, abilityNamePath);
-
-		LOAD_TEXT(ITEM_NAME_FILE_ID, itemNamePath);
-		LOAD_TEXT(ITEM_DESCRIPTION_FILE_ID, itemDescriptionPath);
-		LOAD_TEXT(ITEM_NAME_COLOR_FILE_ID, itemColorPath);
-		LOAD_TEXT(ITEM_NAME_PLURAL_FILE_ID, itemPluralPath);
-
-		LOAD_TEXT(MOVE_NAME_FILE_ID, moveNamePath);
-		LOAD_TEXT(MOVE_NAME_MAYUS_FILE_ID, moveNameMayusPath);
-		LOAD_TEXT(MOVE_USE_FILE_ID, moveUsePath);
-		LOAD_TEXT(MOVE_DESCRIPTION_FILE_ID, moveDescriptionPath);
-
-		LOAD_TEXT(LOCATION_NAME_FILE_ID, locationNamePath);
-
-		LOAD_TEXT(TRAINER_NAME_FILE_ID, trainerNamePath);
-		LOAD_TEXT(TRAINER_CLASS_FILE_ID, trainerClassPath);
-
-		LOAD_TEXT(NATURE_FILE_ID, naturePath);
-	}
-
-	// Extract the files we are missing
-	if (missingTextFiles.size())
-	{
-		if (!NarcUnpackBundle(romTextNarcPath, textNarcPath, missingTextFiles))
-		{
-			Log(CRITICAL, "Couldn't load project %s, game text NARC not found", project->name.c_str());
-			return false;
-		}
-	}
-
-	// Load relevant Pokémon text data
-	LoadAlle5File(pkmNamePath, pkmNames);
-	LoadAlle5File(formNamePath, formNames);
-	LoadAlle5File(pkmDescriptionPath, pkmDescriptions);
-	LoadAlle5File(pkmTitlePath, pkmTitles);
-	// Load relevant Type text data
-	LoadAlle5File(typeNamePath, types);
-	// Load relevant Ability text data
-	LoadAlle5File(abilityNamePath, abilities);
-	// Load relevant Item text data
-	LoadAlle5File(itemNamePath, itemNames);
-	LoadAlle5File(itemDescriptionPath, itemDescriptions);
-	LoadAlle5File(itemColorPath, itemColors);
-	LoadAlle5File(itemPluralPath, itemPlurals);
-	// Load relevant Move text data
-	LoadAlle5File(moveNamePath, moveNames);
-	LoadAlle5File(moveNameMayusPath, moveNamesMayus);
-	LoadAlle5File(moveUsePath, moveUses);
-	LoadAlle5File(moveDescriptionPath, moveDescriptions);
-	// Load relevant Location text data
-	LoadAlle5File(locationNamePath, locationNames);
-	// Load relevant Trainer text data
-	LoadAlle5File(trainerNamePath, trainerNames);
-	LoadAlle5File(trainerClassPath, trainerClasses);
-	// Load relevant Nature text data
-	LoadAlle5File(naturePath, natures);
-
-	return true;
-}
-
-u32 Engine::LoadDataNarc(const string& narcPath, string& outputPath)
-{
-	vector<u16> excludeFiles;
-
-	// The path where the files are stored in the CTRMap project
-	string ctrNarcPath = project->ctrMapProjectPath + PATH_SEPARATOR + CTRMAP_FILESYSTEM_PATH + PATH_SEPARATOR + narcPath;
-	// The path to the NARC file in the extracted ROM
-	string romNarcPath = project->romPath + PATH_SEPARATOR + ROM_FILESYSTEM_PATH + PATH_SEPARATOR + narcPath;
-	// Create the path where the files will be stored
-	outputPath = project->path + PATH_SEPARATOR + FILESYSTEM_NAME + PATH_SEPARATOR + narcPath;
-
-	// If the NARC is partially extracted in the CTRMap project move
-	// the extracted files and exclude them from the unpacking
-	if (PathExists(ctrNarcPath))
-	{
-		vector<string> ctrFiles = GetFolderElementList(ctrNarcPath);
-		for (u16 ctrIdx = 0; ctrIdx < ctrFiles.size(); ++ctrIdx)
-		{
-			string ctrFilePath = ctrNarcPath + PATH_SEPARATOR + ctrFiles[ctrIdx];
-			if (!PathExists(ctrFilePath) || !IsFilePath(ctrFilePath))
-			{
-				Log(WARNING, "Couldn't find file %s in %s NARC in CTRMap", ctrFiles[ctrIdx].c_str(), narcPath.c_str());
-				continue;
-			}
-			string engineFilePath = outputPath + PATH_SEPARATOR + ctrFiles[ctrIdx];
-			// Copy the already extracted files from the CTRMap project
-			if (!CopyFile(ctrFilePath, engineFilePath))
-			{
-				Log(WARNING, "Couldn't copy %s file in %s NARC", ctrFiles[ctrIdx].c_str(), narcPath.c_str());
-				continue;
-			}
-
-			excludeFiles.emplace_back((u16)stoi(ctrFiles[ctrIdx]));
-		}
-	}
-
-	// Create the NARC folder if necesary
-	if (!PathExists(outputPath) && !CreateFolder(outputPath))
-	{
-		Log(CRITICAL, "Couldn't create %s NARC folder", narcPath.c_str());
-		return 0;
-	}
-
-	if (!PathExists(romNarcPath) || !IsFilePath(romNarcPath))
-	{
-		Log(CRITICAL, "Couldn't load project %s, game text NARC not found", project->name.c_str());
-		return 0;
-	}
-
-	// Extract the remaining files (excluding the ones found in the CTRMap project)
-	int extractedFiles = NarcUnpackExclude(romNarcPath, outputPath, excludeFiles);
-	if (extractedFiles < 0)
-	{
-		Log(CRITICAL, "Couldn't load project %s, data NARC not found", project->name.c_str());
-		return 0;
-	}
-
-	return (u32)extractedFiles + (u32)excludeFiles.size();
-}
-
-bool Engine::LoadPokemon(Pokemon& pkm)
-{
-	string personalFilePath = MAKE_FILE_PATH(personalPath, pkm.dataIdx);
-	if (!LoadPersonal(personal[pkm.dataIdx], personalFilePath))
-	{
-		Log(CRITICAL, u8"Pokémon %d lacks personal data", pkm.dataIdx);
-		return false;
-	}
-	string learnsetFilePath = MAKE_FILE_PATH(learnsetPath, pkm.dataIdx);
-	if (!LoadLearnset(learnset[pkm.dataIdx], learnsetFilePath))
-	{
-		Log(CRITICAL, u8"Pokémon %d lacks learnset data", pkm.dataIdx);
-		return false;
-	}
-	string evolutionFilePath = MAKE_FILE_PATH(evolutionPath, pkm.dataIdx);
-	if (!LoadEvolution(evolution[pkm.dataIdx], evolutionFilePath))
-	{
-		Log(CRITICAL, u8"Pokémon %d lacks evolution data", pkm.dataIdx);
-		return false;
-	}
-
-	// Only non-PokéStar and non-Form Pokémon have a child file
-	if (!pkm.pokeStudio && !PokemonIsForm(pkm))
-	{
-		string childFilePath = MAKE_FILE_PATH(childPath, pkm.idx);
-		if (!LoadChild(child[pkm.dataIdx], childFilePath))
-		{
-			Log(CRITICAL, u8"Pokémon %d lacks child data", pkm.idx);
-			return false;
-		}
-	}
-
-	return true;
-}
-
-bool Engine::LoadPokemonData()
-{
-	u32 formCount = 0;
-	// Store loaded data in the Pokémon array
-	for (u32 pkmIdx = 0; pkmIdx < (u32)pkmNames.size(); ++pkmIdx)
-	{
-		Pokemon pkm;
-		pkm.idx = pkmIdx;
-		// Base form Pokémon share their Pokédex, PML and Text indexes
-		pkm.dataIdx = pkmIdx;
-		pkm.textIdx = pkmIdx;
-
-		// Pokémon names over the Pokédex amount are PokéStudio enemies
-		pkm.pokeStudio = (bool)!((u32)pkmIdx < project->pokemonCount);
-		// PokéStudio enemies don't have Text index since they don't have a description
-		if (pkm.pokeStudio)
-			pkm.textIdx = 0;
-
-		// Load the data of the Pokémon
-		if (!LoadPokemon(pkm))
-			return false;
-
-		if (!pkm.pokeStudio)
-		{
-			// Load the data of the Pokémon forms
-			for (u8 form = 0; form < personal[pkmIdx][FORM_COUNT] - 1; ++form)
-			{
-				Pokemon formPkm;
-				formPkm.idx = pkmIdx;
-
-				// Form Pokémon data index is specified in the personal data of the base Pokémon
-				formPkm.dataIdx = personal[pkmIdx][FORM_OFFSET] + form;
-				// Form Pokémon without data must use the data of the base Pokémon
-				if (formPkm.dataIdx == form)
-					formPkm.dataIdx = pkm.dataIdx;
-
-				// Decription texts skip the PokéStudion Entries
-				// textIdx 650 is empty so we need to add 1
-				formPkm.textIdx = project->pokemonCount + formCount + 1;
-
-				// Only non-PokéStudio Pokémon have forms
-				formPkm.pokeStudio = false;
-
-				++formCount;
-
-				// Load the data of the Form Pokémon
-				if (!LoadPokemon(formPkm))
-					return false;
-
-				pkm.forms.push_back(formPkm);
-			}
-		}
-		pokemon.push_back(pkm);
-	}
-	if (project->selectedPkmIdx >= (u32)pokemon.size())
-		SetCurrentPokemon(0, 0);
-	else
-		SetCurrentPokemon(project->selectedPkmIdx, project->selectedPkmForm);
-
-	return true;
-}
-
-bool Engine::LoadItemData()
-{
-	// Store loaded data in the Item array
-	for (u32 itemIdx = 0; itemIdx < (u32)itemNames.size(); ++itemIdx)
-	{
-		string itemFilePath = MAKE_FILE_PATH(itemPath, itemIdx);
-		if (!LoadItem(items[itemIdx], itemFilePath))
-		{
-			Log(CRITICAL, u8"Item %d lacks item data", itemIdx);
-			return false;
-		}
-	}
-	if (project->selectedItemIdx >= (u32)items.size())
-		SetCurrentItem(0);
-	else
-		SetCurrentItem(project->selectedItemIdx);
-
-	return true;
-}
-
-bool Engine::LoadMoveData()
-{
-	// Store loaded data in the Move array
-	for (u32 moveIdx = 0; moveIdx < (u32)moveNames.size(); ++moveIdx)
-	{
-		string moveFilePath = MAKE_FILE_PATH(movePath, moveIdx);
-		if (moveIdx < (u32)moves.size() && !LoadMove(moves[moveIdx], moveFilePath))
-		{
-			Log(CRITICAL, u8"Move %d lacks move data", moveIdx);
-			return false;
-		}
-
-		string moveAnimFilePath = MAKE_FILE_PATH(moveAnimPath, moveIdx);
-		LoadFileStream(moveAnims[moveIdx], moveAnimFilePath);
-	}
-	if (project->selectedMoveIdx >= (u32)moves.size())
-		SetCurrentMove(0);
-	else
-		SetCurrentMove(project->selectedMoveIdx);
-
-	return true;
-}
-
-bool Engine::LoadLocations(u32 encounterFilesCount)
-{
-	string zoneFilePath = MAKE_FILE_PATH(zonePath, 0);
-	if (!LoadZone(zones, zoneFilePath))
-		return false;
-
-	locations.resize(locationNames.size());
-	for (u32 locationIdx = 0; locationIdx < (u32)locationNames.size(); ++locationIdx)
-	{
-		for (u32 zoneIdx = 0; zoneIdx < (u32)zones.size(); ++zoneIdx)
-		{
-			const ZoneData& zone = zones[zoneIdx];
-			u32 locationNameIdx = ZONE_LOCATION_NAME_IDX(zone);
-			if (locationNameIdx == locationIdx)
-			{
-				locations[locationIdx].push_back(zoneIdx);
-			}
-		}
-	}
-
-	encounters.resize(encounterFilesCount);
-	for (u32 encounterIdx = 0; encounterIdx < encounterFilesCount; ++encounterIdx)
-	{
-		string encounterFilePath = MAKE_FILE_PATH(encounterPath, encounterIdx);
-		LoadEncounter(encounters[encounterIdx], encounterFilePath);
-	}
-
-	if (project->selectedLocationIdx >= (u32)locations.size())
-		SetCurrentLocation(0, 0);
-	else
-		SetCurrentLocation(project->selectedLocationIdx, project->selectedZoneIdx); 
-	return true;
-}
-
-bool Engine::LoadTrainerData()
-{
-	// Store loaded data in the Trainer array
-	trainers.resize(trainerNames.size());
-	trainerTeams.resize(trainerNames.size());
-	for (u32 trIdx = 0; trIdx < (u32)trainerNames.size(); ++trIdx)
-	{
-		string trainerFilePath = MAKE_FILE_PATH(trainerPath, trIdx);
-		if (!LoadTrainer(trainers[trIdx], trainerFilePath))
-		{
-			Log(CRITICAL, u8"Trainer %d lacks trainer data", trIdx);
-			return false;
-		}
-
-		string trainerTeamFilePath = MAKE_FILE_PATH(trainerTeamPath, trIdx);
-		if (!LoadTrainerTeam(trainerTeams[trIdx], trainers[trIdx], trainerTeamFilePath))
-		{
-			Log(CRITICAL, u8"Trainer %d lacks team data", trIdx);
-			return false;
-		}
-	}
-	if (project->selectedTrainerIdx >= (u32)trainerNames.size())
-		SetCurrentTrainer(0);
-	else
-		SetCurrentTrainer(project->selectedTrainerIdx);
-
-	return true;
-}
-
-bool Engine::Start()
-{
-	// Extract the text data
-	Log(INFO, "Loading Text Files...");
-	if (!LoadTextFiles())
-		return false;
-
-	Log(INFO, "Loading Personal NARC...");
-	// Extrat the data of every Pokémon
-	int loadedFiles = LoadDataNarc(PERSONAL_NARC_PATH, personalPath);
-	if (loadedFiles < 0)
-		return false;
-	personal.resize(loadedFiles);
-
-	Log(INFO, "Loading Learnset NARC...");
-	loadedFiles = LoadDataNarc(LEARNSET_NARC_PATH, learnsetPath);
-	if (loadedFiles < 0)
-		return false;
-	learnset.resize(loadedFiles);
-
-	Log(INFO, "Loading Evolution NARC...");
-	loadedFiles = LoadDataNarc(EVOLUTION_NARC_PATH, evolutionPath);
-	if (loadedFiles < 0)
-		return false;
-	evolution.resize(loadedFiles);
-
-	Log(INFO, "Loading Child NARC...");
-	loadedFiles = LoadDataNarc(CHILD_NARC_PATH, childPath);
-	if (loadedFiles < 0)
-		return false;
-	child.resize(loadedFiles);
-
-	Log(INFO, "Loading Pokemon...");
-	if (!LoadPokemonData())
-		return false;
-
-	Log(INFO, "Loading Item NARC...");
-	loadedFiles = LoadDataNarc(ITEM_NARC_PATH, itemPath);
-	if (loadedFiles < 0)
-		return false;
-	items.resize(loadedFiles);
-
-	Log(INFO, "Loading Items...");
-	if (!LoadItemData())
-		return false;
-
-	Log(INFO, "Loading Move NARC...");
-	loadedFiles = LoadDataNarc(MOVE_NARC_PATH, movePath);
-	if (loadedFiles < 0)
-		return false;
-	moves.resize(loadedFiles);
-
-	Log(INFO, "Loading Move Animation NARC...");
-	loadedFiles = LoadDataNarc(MOVE_ANIM_NARC_PATH, moveAnimPath);
-	if (loadedFiles < 0)
-		return false;
-	moveAnims.resize(loadedFiles);
-
-	Log(INFO, "Loading Moves...");
-	if (!LoadMoveData())
-		return false;
-
-	Log(INFO, "Loading Zone NARC...");
-	loadedFiles = LoadDataNarc(ZONE_NARC_PATH, zonePath);
-	if (loadedFiles < 0)
-		return false;
-
-	Log(INFO, "Loading Encounter NARC...");
-	loadedFiles = LoadDataNarc(ENCOUNTER_NARC_PATH, encounterPath);
-	if (loadedFiles < 0)
-		return false;
-	
-	Log(INFO, "Loading Locations...");
-	if (!LoadLocations(loadedFiles))
-		return false;
-
-	Log(INFO, "Loading Trainer NARC...");
-	loadedFiles = LoadDataNarc(TRAINER_NARC_PATH, trainerPath);
-	if (loadedFiles < 0)
-		return false;
-
-	Log(INFO, "Loading Trainer Team NARC...");
-	loadedFiles = LoadDataNarc(TRAINER_TEAM_NARC_PATH, trainerTeamPath);
-	if (loadedFiles < 0)
-		return false;
-
-	Log(INFO, "Loading Trainers...");
-	if (!LoadTrainerData())
-		return false;
-
-	return true;
-}
-
-bool Engine::LoadPersonal(PersonalData& personalData, const string& file)
-{
-	PersonalReset(personalData);
-
-	FileStream fileStream;
-	if (!LoadFileStream(fileStream, file))
-		return false;
-	u32 currentByte = 0;
-
-	for (u32 stat = 0; stat < STAT_COUNT; ++stat)
-		personalData[(u32)BASE_HP + stat] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-
-	for (u32 type = 0; type < TYPE_COUNT; ++type)
-		personalData[(u32)TYPE_1 + type] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-
-	personalData[CATCH_RATE] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	personalData[EVOLUTION_STAGE] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-
-	u16 evYield = FileStreamReadUpdate<u16>(fileStream, currentByte);
-	for (u32 stat = 0; stat < STAT_COUNT; ++stat)
-		personalData[(u32)EV_HP + stat] = (u8)((evYield >> (stat * 2)) & 0x0003);
-	personalData[GROUNDED_SPRITE] = (int)((evYield & 0x1000) != 0);
-
-	u16 expandedAbilBits[ABILITY_COUNT];
-	for (u32 item = 0; item < WILD_ITEM_COUNT; ++item)
-	{
-		u16 itemValue = FileStreamReadUpdate<u16>(fileStream, currentByte);
-		expandedAbilBits[item] = itemValue & 0xC000;
-		// Remove the ability related bits from the item value
-		itemValue -= expandedAbilBits[item];
-
-		personalData[(u32)WILD_ITEM_50 + item] = (int)itemValue;
-	}
-
-	personalData[SEX_CHANCE] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-
-	personalData[EGG_HAPPINESS] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	personalData[BASE_HAPPINESS] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-
-	personalData[GROWTH_RATE] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-
-	for (u32 eggGroup = 0; eggGroup < EGG_GROUP_COUNT; ++eggGroup)
-		personalData[(u32)EGG_GROUP_1 + eggGroup] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-
-	for (u32 ability = 0; ability < ABILITY_COUNT; ++ability)
-	{
-		u16 abilityValue = FileStreamReadUpdate<u8>(fileStream, currentByte);
-		// Add the ability bits stored in the item slot to the ability value
-		abilityValue += (expandedAbilBits[ability] >> 6);
-
-		personalData[(u32)ABILITY_1 + ability] = (int)abilityValue;
-	}
-
-	personalData[ESCAPE_RATE] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-
-	personalData[FORM_OFFSET] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-	personalData[FORM_SPRITE_OFFSET] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-	personalData[FORM_COUNT] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-
-	u8 colorValue = FileStreamReadUpdate<u8>(fileStream, currentByte);
-	personalData[COLOR] = (int)(colorValue & 0x3F);
-	personalData[SPRITE_FLIP] = (int)((colorValue & 0x40) >> 6);
-	personalData[FORM_RARE] = (bool)((colorValue & 0x80) >> 7);
-
-	personalData[BASE_EXP] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-
-	personalData[WEIGHT] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-	personalData[HEIGHT] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-
-	for (u32 tmhm = 0; tmhm < TM_HM_COUNT; ++tmhm)
-		personalData[(u32)TM_HM_1 + tmhm] = (int)FileStreamReadUpdate<u32>(fileStream, currentByte);
-
-	personalData[TYPE_TUTORS] = (int)FileStreamReadUpdate<u32>(fileStream, currentByte);
-
-	for (u32 specialTutor = 0; specialTutor < SPECIAL_TUTOR_COUNT; ++specialTutor)
-		personalData[(u32)SPECIAL_TUTORS_1 + specialTutor] = FileStreamReadUpdate<u32>(fileStream, currentByte);
-
-	ReleaseFileStream(fileStream);
-	return true;
-}
-
-bool Engine::SavePersonal(const PersonalData& personalData, const string& file)
-{
-	FileStream fileStream;
-	if (!LoadEmptyFileStream(fileStream))
-		return false;
-
-	for (u32 stat = 0; stat < STAT_COUNT; ++stat)
-		FileStreamPutBack<u8>(fileStream, (u8)personalData[(u32)BASE_HP + stat]);
-
-	for (u32 type = 0; type < TYPE_COUNT; ++type)
-		FileStreamPutBack<u8>(fileStream, (u8)personalData[(u32)TYPE_1 + type]);
-
-	FileStreamPutBack<u8>(fileStream, (u8)personalData[CATCH_RATE]);
-	FileStreamPutBack<u8>(fileStream, (u8)personalData[EVOLUTION_STAGE]);
-
-	u16 evYield = 0;
-	for (int stat = STAT_COUNT - 1; stat >= 0; --stat)
-	{
-		evYield |= (personalData[(u32)EV_HP + stat] & 0x0003);
-		evYield = evYield << 2;
-	}
-	if (personalData[GROUNDED_SPRITE] != 0)
-		evYield |= 0x1000;
-	FileStreamPutBack<u16>(fileStream, evYield);
-
-	for (u32 item = 0; item < WILD_ITEM_COUNT; ++item)
-	{
-		u16 itemValue = (u16)personalData[(u32)WILD_ITEM_50 + item];
-
-		itemValue &= 0x3FFF;
-		// Save the 2 most significant ability bits at the end of the item value
-		itemValue += ((u16)personalData[(u32)ABILITY_1 + item] & 0x0300) << 6;
-
-		FileStreamPutBack<u16>(fileStream, itemValue);
-	}
-
-	FileStreamPutBack<u8>(fileStream, (u8)personalData[SEX_CHANCE]);
-
-	FileStreamPutBack<u8>(fileStream, (u8)personalData[EGG_HAPPINESS]);
-	FileStreamPutBack<u8>(fileStream, (u8)personalData[BASE_HAPPINESS]);
-
-	FileStreamPutBack<u8>(fileStream, (u8)personalData[GROWTH_RATE]);
-
-	for (u32 eggGroup = 0; eggGroup < EGG_GROUP_COUNT; ++eggGroup)
-		FileStreamPutBack<u8>(fileStream, (u8)personalData[(u32)EGG_GROUP_1 + eggGroup]);
-
-	for (u32 ability = 0; ability < ABILITY_COUNT; ++ability)
-		FileStreamPutBack<u8>(fileStream, (u8)personalData[(u32)ABILITY_1 + ability]);
-
-	FileStreamPutBack<u8>(fileStream, (u8)personalData[ESCAPE_RATE]);
-
-	FileStreamPutBack<u16>(fileStream, (u16)personalData[FORM_OFFSET]);
-	FileStreamPutBack<u16>(fileStream, (u16)personalData[FORM_SPRITE_OFFSET]);
-	FileStreamPutBack<u8>(fileStream, (u8)personalData[FORM_COUNT]);
-
-	u8 color = (u8)personalData[COLOR] & 0x3F;
-	if (personalData[SPRITE_FLIP] != 0)
-		color |= 0x40;
-	if (personalData[FORM_RARE] != 0)
-		color |= 0x80;
-	FileStreamPutBack<u8>(fileStream, color);
-
-	FileStreamPutBack<u16>(fileStream, (u16)personalData[BASE_EXP]);
-
-	FileStreamPutBack<u16>(fileStream, (u16)personalData[WEIGHT]);
-	FileStreamPutBack<u16>(fileStream, (u16)personalData[HEIGHT]);
-
-	for (u32 tmhm = 0; tmhm < TM_HM_COUNT; ++tmhm)
-		FileStreamPutBack<u32>(fileStream, personalData[(u32)TM_HM_1 + tmhm]);
-
-	FileStreamPutBack<u32>(fileStream, (u32)personalData[TYPE_TUTORS]);
-
-	for (u32 specialTutor = 0; specialTutor < SPECIAL_TUTOR_COUNT; ++specialTutor)
-		FileStreamPutBack<u32>(fileStream, personalData[(u32)SPECIAL_TUTORS_1 + specialTutor]);
-
-	SaveFileStream(fileStream, file);
-	ReleaseFileStream(fileStream);
-	return true;
-}
-
-bool Engine::LoadLearnset(LearnsetData& learnData, const string& file)
-{
-	LearnsetReset(learnData);
-
-	FileStream fileStream;
-	if (!LoadFileStream(fileStream, file))
-		return false;
-	u32 currentByte = 0;
-
-	for (u32 learnIdx = 0; learnIdx < project->learnsetSize && learnIdx < LEARNSET_DATA_MAX; ++learnIdx)
-	{
-		u16 moveID = FileStreamReadUpdate<u16>(fileStream, currentByte);
-		if (moveID == LEARNSET_NULL)
-			break;
-		u16 level = FileStreamReadUpdate<u16>(fileStream, currentByte);
-		if (level == LEARNSET_NULL)
-			break;
-
-		learnData[learnIdx][LEARN_MOVE_ID] = (int)moveID;
-		learnData[learnIdx][LEARN_LEVEL] = (int)level;
-	}
-
-	ReleaseFileStream(fileStream);
-	return true;
-}
-
-bool Engine::SaveLearnset(const LearnsetData& learnData, const string& file)
-{
-	FileStream fileStream;
-	if (!LoadEmptyFileStream(fileStream))
-		return false;
-
-	u32 learnIdx = 0;
-	vector<pair<u32, int>> orderedSet = Learnset::GetOrderedLearnset(learnData);
-	for (; learnIdx < orderedSet.size(); ++learnIdx)
-	{
-		u32 idx = orderedSet[learnIdx].first;
-		FileStreamPutBack<u16>(fileStream, (u16)learnData[idx][LEARN_MOVE_ID]);
-		FileStreamPutBack<u16>(fileStream, (u16)learnData[idx][LEARN_LEVEL]);
-	}
-	if (learnIdx < project->learnsetSize)
-	{
-		FileStreamPutBack<u16>(fileStream, (u16)LEARNSET_NULL);
-		FileStreamPutBack<u16>(fileStream, (u16)LEARNSET_NULL);
-	}
-		
-
-	SaveFileStream(fileStream, file);
-	ReleaseFileStream(fileStream);
-	return true;
-}
-
-bool Engine::LoadEvolution(EvolutionData& evoData, const string& file)
-{
-	EvolutionReset(evoData);
-
-	FileStream fileStream;
-	if (!LoadFileStream(fileStream, file))
-		return false;
-	u32 currentByte = 0;
-
-	for (u32 evoIdx = 0; evoIdx < project->evolutionSize && evoIdx < EVOLUTION_DATA_MAX; ++evoIdx)
-	{
-		evoData[evoIdx][EVOLUTION_METHOD] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-		evoData[evoIdx][EVOLUTION_PARAM] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-		evoData[evoIdx][EVOLUTION_SPECIES] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-	}
-
-	ReleaseFileStream(fileStream);
-	return true;
-}
-
-bool Engine::SaveEvolution(const EvolutionData& evoData, const string& file)
-{
-	FileStream fileStream;
-	if (!LoadEmptyFileStream(fileStream))
-		return false;
-
-	for (u32 evoIdx = 0; evoIdx < project->evolutionSize && evoIdx < EVOLUTION_DATA_MAX; ++evoIdx)
-	{
-		FileStreamPutBack<u16>(fileStream, (u16)evoData[evoIdx][EVOLUTION_METHOD]);
-		FileStreamPutBack<u16>(fileStream, (u16)evoData[evoIdx][EVOLUTION_PARAM]);
-		FileStreamPutBack<u16>(fileStream, (u16)evoData[evoIdx][EVOLUTION_SPECIES]);
-	}
-
-	SaveFileStream(fileStream, file);
-	ReleaseFileStream(fileStream);
-	return true;
-}
-
-bool Engine::LoadChild(ChildData& childData, const string& file)
-{
-	childData = CHILD_NULL;
-
-	FileStream fileStream;
-	if (!LoadFileStream(fileStream, file))
-		return false;
-
-	childData = (int)FileStreamRead<u16>(fileStream, 0);
-
-	ReleaseFileStream(fileStream);
-
-	return true;
-}
-
-bool Engine::SaveChild(const ChildData& childData, const string& file)
-{
-	FileStream fileStream;
-	if (!LoadEmptyFileStream(fileStream))
-		return false;
-
-	FileStreamPutBack<u16>(fileStream, (u16)childData);
-
-	SaveFileStream(fileStream, file);
-	ReleaseFileStream(fileStream);
-	return true;
-}
-
-bool Engine::LoadItem(ItemData& itemData, const string& file)
-{
-	FileStream fileStream;
-	if (!LoadFileStream(fileStream, file))
-		return false;
-
-	u32 currentByte = 0;
-
-	itemData[PRICE] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-
-	itemData[HELD_EFFECT] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	itemData[HELD_PARAM] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	itemData[NATURAL_GIFT_EFFECT] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	itemData[FLING_EFFECT] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	itemData[FLING_POWER] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	itemData[NATURAL_GIFT_POWER] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-
-	u16 packed = FileStreamReadUpdate<u16>(fileStream, currentByte);
-	itemData[PACKED_FLAG_1] = (packed & 0x20) >> 5;
-	itemData[PACKED_FLAG_2] = (packed & 0x40) >> 6;
-	itemData[POCKET_FIELD] = (packed & 0x780) >> 7;
-	itemData[NATURAL_GIFT_TYPE] = packed & 0x1F;
-
-	itemData[EFFECT_FIELD] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	itemData[EFFECT_BATTLE] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	itemData[HAS_BATTLE_STATS] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	itemData[BATTLE_POCKET] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	itemData[CONSUMABLE] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	itemData[SORT_IDX] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-
-	if (itemData[HAS_BATTLE_STATS] == 0)
-	{
-		for (int field = CURE_SLEEP; field < ITEMDATA_MAX; ++field)
-			itemData[field] = 0;
-	}
-	else
-	{
-		u8 cureInflict = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-		for (int field = CURE_SLEEP; field <= CURE_GSP; ++field)
-		{
-			u8 index = field - CURE_SLEEP;
-			itemData[field] = (cureInflict & (0x1 << index)) >> index;
-		}
-
-		u32 boosts = FileStreamReadUpdate<u32>(fileStream, currentByte);
-		for (int field = BOOST_REVIVE; field <= BOOST_EVOSTONE; ++field)
-		{
-			u32 index = field - BOOST_REVIVE;
-			itemData[field] = (boosts & (0x1 << index)) >> index;
-		}
-		for (int field = BOOST_ATK; field <= BOOST_ACC; ++field)
-		{
-			u32 index = ((field - BOOST_ATK) + 1) * 4;
-			itemData[field] = (boosts & (0xF << index)) >> index;
-		}
-		itemData[BOOST_CRIT] = (boosts & 0x30000000) >> 28;
-		itemData[BOOST_PP] = (boosts & 0x40000000) >> 30;
-		itemData[BOOST_PP_MAX] = (boosts & 0x80000000) >> 31;
-
-		u16 functions = FileStreamReadUpdate<u16>(fileStream, currentByte);
-		for (int field = PP_REPLENISH; field <= FRIENDSHIP_ADD_3; ++field)
-		{
-			u16 index = field - PP_REPLENISH;
-			itemData[field] = (boosts & (0x1 << index)) >> index;
-		}
-
-		itemData[ITEM_EV_HP] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-		itemData[ITEM_EV_ATK] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-		itemData[ITEM_EV_DEF] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-		itemData[ITEM_EV_SPE] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-		itemData[ITEM_EV_SPA] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-		itemData[ITEM_EV_SPD] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-
-		itemData[HEAL_AMOUNT] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-		itemData[PP_GAIN] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-
-		itemData[FRIENDSHIP_1] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-		itemData[FRIENDSHIP_2] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-		itemData[FRIENDSHIP_3] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-
-		itemData[UNKNOWN_1] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-		itemData[UNKNOWN_2] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	}
-
-	ReleaseFileStream(fileStream);
-	return true;
-}
-
-bool Engine::SaveItem(const ItemData& itemData, const string& file)
-{
-	FileStream fileStream;
-	if (!LoadEmptyFileStream(fileStream))
-		return false;
-
-	FileStreamPutBack<u16>(fileStream, (u16)itemData[PRICE]);
-
-	FileStreamPutBack<u8>(fileStream, (u8)itemData[HELD_EFFECT]);
-	FileStreamPutBack<u8>(fileStream, (u8)itemData[HELD_PARAM]);
-	FileStreamPutBack<u8>(fileStream, (u8)itemData[NATURAL_GIFT_EFFECT]);
-	FileStreamPutBack<u8>(fileStream, (u8)itemData[FLING_EFFECT]);
-	FileStreamPutBack<u8>(fileStream, (u8)itemData[FLING_POWER]);
-	FileStreamPutBack<u8>(fileStream, (u8)itemData[NATURAL_GIFT_POWER]);
-
-	u16 packed = (itemData[PACKED_FLAG_1] << 5) & 0x20;
-	packed |= (itemData[PACKED_FLAG_2] << 6) & 0x40;
-	packed |= (itemData[POCKET_FIELD] << 7) & 0x780;
-	packed |= itemData[NATURAL_GIFT_TYPE] & 0x1F;
-	FileStreamPutBack<u16>(fileStream, packed);
-
-	FileStreamPutBack<u8>(fileStream, (u8)itemData[EFFECT_FIELD]);
-	FileStreamPutBack<u8>(fileStream, (u8)itemData[EFFECT_BATTLE]);
-	FileStreamPutBack<u8>(fileStream, (u8)itemData[HAS_BATTLE_STATS]);
-	FileStreamPutBack<u8>(fileStream, (u8)itemData[BATTLE_POCKET]);
-	FileStreamPutBack<u8>(fileStream, (u8)itemData[CONSUMABLE]);
-	FileStreamPutBack<u8>(fileStream, (u8)itemData[SORT_IDX]);
-
-	if (itemData[HAS_BATTLE_STATS] == 0)
-	{
-		for (int field = CURE_SLEEP; field < ITEMDATA_MAX; ++field)
-			FileStreamPutBack<u8>(fileStream, 0);
-	}
-	else
-	{
-		u8 cureInflict = 0;
-		for (int field = CURE_SLEEP; field <= CURE_GSP; ++field)
-		{
-			u8 index = field - CURE_SLEEP;
-			cureInflict |= (itemData[field] << index) & (0x1 << index);
-		}
-		FileStreamPutBack<u16>(fileStream, cureInflict);
-
-		u32 boosts = 0;
-		for (int field = BOOST_REVIVE; field <= BOOST_EVOSTONE; ++field)
-		{
-			u32 index = field - BOOST_REVIVE;
-			boosts |= (itemData[field] << index) & (0x1 << index);
-		}
-		for (int field = BOOST_ATK; field <= BOOST_ACC; ++field)
-		{
-			u32 index = ((field - BOOST_ATK) + 1) * 4;
-			boosts |= (itemData[field] << index) & (0xF << index);
-		}
-		boosts |= (itemData[BOOST_CRIT] << 28) & 0x30000000;
-		boosts |= (itemData[BOOST_PP] << 30) & 0x40000000;
-		boosts |= (itemData[BOOST_PP_MAX] << 31) & 0x80000000;
-		FileStreamPutBack<u16>(fileStream, boosts);
-
-		u16 functions = 0;
-		for (int field = PP_REPLENISH; field <= FRIENDSHIP_ADD_3; ++field)
-		{
-			u16 index = field - PP_REPLENISH;
-			functions |= (itemData[field] << index) & (0x1 << index);
-		}
-		FileStreamPutBack<u16>(fileStream, functions);
-
-		FileStreamPutBack<u8>(fileStream, (u8)itemData[ITEM_EV_HP]);
-		FileStreamPutBack<u8>(fileStream, (u8)itemData[ITEM_EV_ATK]);
-		FileStreamPutBack<u8>(fileStream, (u8)itemData[ITEM_EV_DEF]);
-		FileStreamPutBack<u8>(fileStream, (u8)itemData[ITEM_EV_SPE]);
-		FileStreamPutBack<u8>(fileStream, (u8)itemData[ITEM_EV_SPA]);
-		FileStreamPutBack<u8>(fileStream, (u8)itemData[ITEM_EV_SPD]);
-
-		FileStreamPutBack<u8>(fileStream, (u8)itemData[HEAL_AMOUNT]);
-		FileStreamPutBack<u8>(fileStream, (u8)itemData[PP_GAIN]);
-
-		FileStreamPutBack<u8>(fileStream, (u8)itemData[FRIENDSHIP_1]);
-		FileStreamPutBack<u8>(fileStream, (u8)itemData[FRIENDSHIP_2]);
-		FileStreamPutBack<u8>(fileStream, (u8)itemData[FRIENDSHIP_3]);
-
-		FileStreamPutBack<u8>(fileStream, (u8)itemData[UNKNOWN_1]);
-		FileStreamPutBack<u8>(fileStream, (u8)itemData[UNKNOWN_2]);
-	}
-
-	SaveFileStream(fileStream, file);
-	ReleaseFileStream(fileStream);
-	return true;
-}
-
-bool Engine::LoadMove(MoveData& moveData, const string& file)
-{
-	FileStream fileStream;
-	if (!LoadFileStream(fileStream, file))
-		return false;
-
-	u32 currentByte = 0;
-
-	moveData[MOVE_TYPE] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	moveData[QUALITY] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	moveData[CATEGORY] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	moveData[POWER] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	moveData[ACCURACY] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	moveData[BASE_PP] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	moveData[PRIORITY] = (int)FileStreamReadUpdate<char>(fileStream, currentByte);
-
-	u8 hitMinMax = FileStreamReadUpdate<u8>(fileStream, currentByte);
-	moveData[HIT_MIN] = hitMinMax & 0x0F;
-	moveData[HIT_MAX] = (hitMinMax & 0xF0) >> 4;
-
-	moveData[CONDITION] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-	moveData[CONDITION_CHANCE] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	moveData[CONDITION_DURATION] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-
-	moveData[TURN_MIN] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	moveData[TURN_MAX] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-
-	moveData[CRIT_STAGE] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	moveData[FLINCH_RATE] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-
-	moveData[BEHAVIOR] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-
-	moveData[RECOIL] = (int)FileStreamReadUpdate<char>(fileStream, currentByte);
-	moveData[HEAL] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	moveData[TARGET] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-
-	for (u32 statChange = 0; statChange < 3; ++statChange)
-		moveData[STAT_CHANGE_1 + statChange] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	for (u32 statChange = 0; statChange < 3; ++statChange)
-		moveData[STAT_CHANGE_VOLUME_1 + statChange] = (int)FileStreamReadUpdate<char>(fileStream, currentByte);
-	for (u32 statChange = 0; statChange < 3; ++statChange)
-		moveData[STAT_CHANGE_CHANCE_1 + statChange] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-
-	moveData[PADDING] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-
-	u32 flags = FileStreamReadUpdate<u32>(fileStream, currentByte);
-	for (u32 moveFlag = 0; moveFlag < sizeof(u32) * 8; ++moveFlag)
-		moveData[IS_CONTACT + moveFlag] = (flags & (1 << moveFlag)) != 0;
-
-	ReleaseFileStream(fileStream);
-	return true;
-}
-
-bool Engine::SaveMove(const MoveData& moveData, const string& file)
-{
-	FileStream fileStream;
-	if (!LoadEmptyFileStream(fileStream))
-		return false;
-
-	FileStreamPutBack<u8>(fileStream, (u8)moveData[MOVE_TYPE]);
-	FileStreamPutBack<u8>(fileStream, (u8)moveData[QUALITY]);
-	FileStreamPutBack<u8>(fileStream, (u8)moveData[CATEGORY]);
-	FileStreamPutBack<u8>(fileStream, (u8)moveData[POWER]);
-	FileStreamPutBack<u8>(fileStream, (u8)moveData[ACCURACY]);
-	FileStreamPutBack<u8>(fileStream, (u8)moveData[BASE_PP]);
-	FileStreamPutBack<char>(fileStream, (char)moveData[PRIORITY]);
-
-	u8 hitMinMax = (u8)moveData[HIT_MIN] + ((u8)moveData[HIT_MAX] << 4);
-	FileStreamPutBack<u8>(fileStream, hitMinMax);
-
-	FileStreamPutBack<u16>(fileStream, (u16)moveData[CONDITION]);
-	FileStreamPutBack<u8>(fileStream, (u8)moveData[CONDITION_CHANCE]);
-	FileStreamPutBack<u8>(fileStream, (u8)moveData[CONDITION_DURATION]);
-	FileStreamPutBack<u8>(fileStream, (u8)moveData[TURN_MIN]);
-	FileStreamPutBack<u8>(fileStream, (u8)moveData[TURN_MAX]);
-
-	FileStreamPutBack<u8>(fileStream, (u8)moveData[CRIT_STAGE]);
-	FileStreamPutBack<u8>(fileStream, (u8)moveData[FLINCH_RATE]);
-	FileStreamPutBack<u16>(fileStream, (u16)moveData[BEHAVIOR]);
-	FileStreamPutBack<char>(fileStream, (char)moveData[RECOIL]);
-	FileStreamPutBack<u8>(fileStream, (u8)moveData[HEAL]);
-	FileStreamPutBack<u8>(fileStream, (u8)moveData[TARGET]);
-
-	for (u32 statChange = 0; statChange < 3; ++statChange)
-		FileStreamPutBack<u8>(fileStream, (u8)moveData[STAT_CHANGE_1 + statChange]);
-	for (u32 statChange = 0; statChange < 3; ++statChange)
-		FileStreamPutBack<char>(fileStream, (char)moveData[STAT_CHANGE_VOLUME_1 + statChange]);
-	for (u32 statChange = 0; statChange < 3; ++statChange)
-		FileStreamPutBack<u8>(fileStream, (u8)moveData[STAT_CHANGE_CHANCE_1 + statChange]);
-
-	FileStreamPutBack<u16>(fileStream, (u16)moveData[PADDING]);
-
-	u32 flags = 0;
-	for (u32 moveFlag = 0; moveFlag < sizeof(u32) * 8; ++moveFlag)
-		if (moveData[IS_CONTACT + moveFlag])
-			flags |= (1 << moveFlag);
-	FileStreamPutBack<u32>(fileStream, flags);
-
-	SaveFileStream(fileStream, file);
-	ReleaseFileStream(fileStream);
-	return true;
-}
-
-bool Engine::LoadEncounter(EncounterData& encounterData, const string& file)
-{
-	FileStream fileStream;
-	if (!LoadFileStream(fileStream, file))
-		return false;
-
-	u32 currentByte = 0;
-	for (u32 season = SUMMER; season < SEASON_MAX; ++season)
-	{
-		EncounterTable& table = encounterData[season];
-		if (FileStreamEnded(fileStream, currentByte + 1))
-		{
-			EncounterTableReset(table);
-			continue;
-		}
-
-		for (u32 type = LAND_SINGLE_RATE; type <= UNKNOWN_RATE; ++type)
-			table[type][ENCOUNTER_SPECIES] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-
-		for (u32 encounter = ENCOUNTER_SINGLE; encounter < ENCOUNTERDATA_MAX; ++encounter)
-			table[encounter] = GetEncounterSlot(FileStreamReadUpdate<u32>(fileStream, currentByte));
-	}
-
-	ReleaseFileStream(fileStream);
-	return true;
-}
-
-bool Engine::SaveEncounter(const EncounterData& encounterData, const string& file)
-{
-	FileStream fileStream;
-	if (!LoadEmptyFileStream(fileStream))
-		return false;
-
-	for (u32 season = SUMMER; season < SEASON_MAX; ++season)
-	{
-		const EncounterTable& table = encounterData[season];
-		if (EncounterTableIsEmpty(table))
-			break;
-
-		for (u32 type = LAND_SINGLE_RATE; type <= UNKNOWN_RATE; ++type)
-			FileStreamPutBack<u8>(fileStream, (u8)table[type][ENCOUNTER_SPECIES]);
-
-		for (u32 encounter = ENCOUNTER_SINGLE; encounter < ENCOUNTERDATA_MAX; ++encounter)
-			FileStreamPutBack<u32>(fileStream, (u32)SetEncounterSlot(table[encounter]));
-	}
-
-	SaveFileStream(fileStream, file);
-	ReleaseFileStream(fileStream);
-	return true;
-}
-
-bool Engine::LoadZone(vector<ZoneData>& zones, const string& file)
-{
-	FileStream fileStream;
-	if (!LoadFileStream(fileStream, file))
-		return false;
-
-	u32 currentByte = 0;
-	u32 currentZone = 0;
-
-	while (!FileStreamEnded(fileStream, currentByte + 1))
-	{
-		ZoneData zone = ZoneData();
-
-		zone[MAP_TYPE] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-		zone[NPC_INFO_CACHE_IDX] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-
-		zone[AREA_ID] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-		zone[MATRIX_ID] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-		zone[SCRIPTS_ID] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-		zone[LEVELSCRIPTS_ID] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-		zone[TEXTS_ID] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-		zone[BG_MAP_SPR] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-		zone[BG_MAP_SUM] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-		zone[BG_MAP_AUT] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-		zone[BG_MAP_WIN] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-		zone[ENCOUNTERS_ID] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-		zone[ENTITIES_ID] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-		zone[PARENT_ZONE_ID] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-		zone[LOCATION_NAME_INFO] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-		zone[ENVIROMENT_FLAGS] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-		zone[FLAGS_BATTLE_BG_MAP_TRANSITION] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-		zone[MATRIX_CAMERA_BOUNDS] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-		zone[NAME_ICON] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-
-		zone[FLY_X] = (int)FileStreamReadUpdate<int>(fileStream, currentByte);
-		zone[FLY_Y] = (int)FileStreamReadUpdate<int>(fileStream, currentByte);
-		zone[FLY_Z] = (int)FileStreamReadUpdate<int>(fileStream, currentByte);
-
-		zones.push_back(zone);
-		++currentZone;
-	}
-
-	ReleaseFileStream(fileStream);
-	return true;
-}
-
-bool Engine::SaveZone(const vector<ZoneData>& zones, const string& file)
-{
-	FileStream fileStream;
-	if (!LoadEmptyFileStream(fileStream))
-		return false;
-
-	for (u32 zoneIdx = 0; zoneIdx < (u32)zones.size(); ++zoneIdx)
-	{
-		const ZoneData& zone = zones[zoneIdx];
-
-		FileStreamPutBack<u8>(fileStream, (u8)zone[MAP_TYPE]);
-		FileStreamPutBack<u8>(fileStream, (u8)zone[NPC_INFO_CACHE_IDX]);
-
-		FileStreamPutBack<u16>(fileStream, (u16)zone[AREA_ID]);
-		FileStreamPutBack<u16>(fileStream, (u16)zone[MATRIX_ID]);
-		FileStreamPutBack<u16>(fileStream, (u16)zone[SCRIPTS_ID]);
-		FileStreamPutBack<u16>(fileStream, (u16)zone[LEVELSCRIPTS_ID]);
-		FileStreamPutBack<u16>(fileStream, (u16)zone[TEXTS_ID]);
-		FileStreamPutBack<u16>(fileStream, (u16)zone[BG_MAP_SPR]);
-		FileStreamPutBack<u16>(fileStream, (u16)zone[BG_MAP_SUM]);
-		FileStreamPutBack<u16>(fileStream, (u16)zone[BG_MAP_AUT]);
-		FileStreamPutBack<u16>(fileStream, (u16)zone[BG_MAP_WIN]);
-		FileStreamPutBack<u16>(fileStream, (u16)zone[ENCOUNTERS_ID]);
-		FileStreamPutBack<u16>(fileStream, (u16)zone[ENTITIES_ID]);
-		FileStreamPutBack<u16>(fileStream, (u16)zone[PARENT_ZONE_ID]);
-		FileStreamPutBack<u16>(fileStream, (u16)zone[LOCATION_NAME_INFO]);
-		FileStreamPutBack<u16>(fileStream, (u16)zone[ENVIROMENT_FLAGS]);
-		FileStreamPutBack<u16>(fileStream, (u16)zone[FLAGS_BATTLE_BG_MAP_TRANSITION]);
-		FileStreamPutBack<u16>(fileStream, (u16)zone[MATRIX_CAMERA_BOUNDS]);
-		FileStreamPutBack<u16>(fileStream, (u16)zone[NAME_ICON]);
-
-		FileStreamPutBack<int>(fileStream, zone[FLY_X]);
-		FileStreamPutBack<int>(fileStream, zone[FLY_Y]);
-		FileStreamPutBack<int>(fileStream, zone[FLY_Z]);
-	}
-
-	SaveFileStream(fileStream, file);
-	ReleaseFileStream(fileStream);
-	return true;
-}
-
-bool Engine::LoadTrainer(TrainerData& trainerData, const string& file)
-{
-	FileStream fileStream;
-	if (!LoadFileStream(fileStream, file))
-		return false;
-
-	u32 currentByte = 0;
-
-	trainerData[TRAINER_TYPE] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	trainerData[TRAINER_CLASS] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	trainerData[BATTLE_TYPE] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	trainerData[POKEMON_COUNT] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-
-	trainerData[ITEM_1] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-	trainerData[ITEM_2] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-	trainerData[ITEM_3] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-	trainerData[ITEM_4] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-
-	u32 AIFlags = (int)FileStreamReadUpdate<u32>(fileStream, currentByte);
-	for (u32 flag = 0; flag < AI_UNUSED_31 - AI_NO_EFFECT_CHECK; ++flag)
-	{
-		trainerData[AI_NO_EFFECT_CHECK + flag] = (AIFlags & (1 << flag)) != 0;
-	}
-		
-
-	trainerData[IS_HEALER] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	trainerData[CASH] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	trainerData[POST_BATTLE_ITEM] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-
-	ReleaseFileStream(fileStream);
-	return true;
-}
-
-bool Engine::SaveTrainer(const TrainerData& trainerData, const string& file)
-{
-	FileStream fileStream;
-	if (!LoadEmptyFileStream(fileStream))
-		return false;
-
-	FileStreamPutBack<u8>(fileStream, (u8)trainerData[TRAINER_TYPE]);
-	FileStreamPutBack<u8>(fileStream, (u8)trainerData[TRAINER_CLASS]);
-	FileStreamPutBack<u8>(fileStream, (u8)trainerData[BATTLE_TYPE]);
-	FileStreamPutBack<u8>(fileStream, (u8)trainerData[POKEMON_COUNT]);
-
-	FileStreamPutBack<u16>(fileStream, (u16)trainerData[ITEM_1]);
-	FileStreamPutBack<u16>(fileStream, (u16)trainerData[ITEM_2]);
-	FileStreamPutBack<u16>(fileStream, (u16)trainerData[ITEM_3]);
-	FileStreamPutBack<u16>(fileStream, (u16)trainerData[ITEM_4]);
-
-	u32 AIFlags = 0;
-	for (u32 flag = 0; flag < AI_UNUSED_31 - AI_NO_EFFECT_CHECK; ++flag)
-		AIFlags |= (trainerData[AI_NO_EFFECT_CHECK + flag] << flag);
-	FileStreamPutBack<u32>(fileStream, AIFlags);
-
-	FileStreamPutBack<u8>(fileStream, (u8)trainerData[IS_HEALER]);
-	FileStreamPutBack<u8>(fileStream, (u8)trainerData[CASH]);
-
-	FileStreamPutBack<u16>(fileStream, (u16)trainerData[POST_BATTLE_ITEM]);
-
-	SaveFileStream(fileStream, file);
-	ReleaseFileStream(fileStream);
-	return true;
-}
-
-void GetBaseMoveset(TrainerTeamData& team, u32 slot, const vector<LearnsetData>& learnsets)
-{
-	int species = team[TEAM_SLOT(slot, TRAINER_SPECIES)];
-	int level = team[TEAM_SLOT(slot, TRAINER_LEVEL)];
-
-	u32 moveSlot = 0;
-	const LearnsetData& learnset = learnsets[species];
-	for (int learnIdx = (int)learnset.size() - 1; learnIdx >= 0; --learnIdx)
-	{
-		if (moveSlot >= 4)
-			break;
-		int moveID = learnset[learnIdx][LEARN_MOVE_ID];
-		if (moveID == LEARNSET_NULL)
-			continue;
-
-		if (level >= learnset[learnIdx][LEARN_LEVEL])
-		{
-			team[TEAM_SLOT(slot, TRAINER_MOVE_1 + moveSlot)] = moveID;
-			++moveSlot;
-		}
-	}
-}
-
-void GetBaseTrainerTeamData(TrainerTeamData& team, u32 slot, const FileStream& fileStream, u32& currentByte, const vector<PersonalData>& personal)
-{
-	team[TEAM_SLOT(slot, TRAINER_DIFFICULTY)] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-
-	u8 abilAndSex = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-	team[TEAM_SLOT(slot, TRAINER_SEX)] = abilAndSex & 0x0F;
-	team[TEAM_SLOT(slot, TRAINER_ABILITY_SLOT)] = (abilAndSex & 0xF0) >> 4;
-
-	team[TEAM_SLOT(slot, TRAINER_LEVEL)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-	team[TEAM_SLOT(slot, TRAINER_SPECIES)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-	team[TEAM_SLOT(slot, TRAINER_FORM)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-
-	int species = team[TEAM_SLOT(slot, TRAINER_SPECIES)];
-	int abilitySlot = team[TEAM_SLOT(slot, TRAINER_ABILITY_SLOT)];
-	const PersonalData& personalData = personal[species];
-	if (abilitySlot == 0)
-		abilitySlot = 1;
-
-	team[TEAM_SLOT(slot, TRAINER_ABILITY)] = personalData[ABILITY_1 + (abilitySlot - 1)];
-
-	int ivs = 31 * team[TEAM_SLOT(slot, TRAINER_DIFFICULTY)] / 255;
-	for (u32 iv = 0; iv < STAT_COUNT; ++iv)
-		team[TEAM_SLOT(slot, TRAINER_HP_IV + iv)] = ivs;
-
-	team[TEAM_SLOT(slot, TRAINER_HP_PERCENT)] = 100;
-}
-
-bool Engine::LoadTrainerTeam(TrainerTeamData& team, const TrainerData& trainer, const string& file)
-{
-	FileStream fileStream;
-	if (!LoadFileStream(fileStream, file))
-		return false;
-
-	u32 currentByte = 0;
-
-	for (u32 slot = 0; slot < (u32)trainer[POKEMON_COUNT]; ++slot)
-	{
-		switch (trainer[TRAINER_TYPE])
-		{
-		case SIMPLE_TRAINER:
-			GetBaseTrainerTeamData(team, slot, fileStream, currentByte, personal);
-			GetBaseMoveset(team, slot, learnset);
-			break;
-		case MOVE_TRAINER:
-			GetBaseTrainerTeamData(team, slot, fileStream, currentByte, personal);
-
-			team[TEAM_SLOT(slot, TRAINER_MOVE_1)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-			team[TEAM_SLOT(slot, TRAINER_MOVE_2)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-			team[TEAM_SLOT(slot, TRAINER_MOVE_3)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-			team[TEAM_SLOT(slot, TRAINER_MOVE_4)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-			break;
-		case ITEM_TRAINER:
-			GetBaseTrainerTeamData(team, slot, fileStream, currentByte, personal);
-			GetBaseMoveset(team, slot, learnset);
-
-			team[TEAM_SLOT(slot, TRAINER_HELD_ITEM)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-			break;
-		case GOOD_TRAINER:
-			GetBaseTrainerTeamData(team, slot, fileStream, currentByte, personal);
-
-			team[TEAM_SLOT(slot, TRAINER_HELD_ITEM)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-
-			team[TEAM_SLOT(slot, TRAINER_MOVE_1)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-			team[TEAM_SLOT(slot, TRAINER_MOVE_2)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-			team[TEAM_SLOT(slot, TRAINER_MOVE_3)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-			team[TEAM_SLOT(slot, TRAINER_MOVE_4)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-			break;
-		case PERFECT_TRAINER:
-
-			u32 genetic = (int)FileStreamReadUpdate<u32>(fileStream, currentByte);
-			team[TEAM_SLOT(slot, TRAINER_SEX)] = genetic >> 30;
-			for (u32 iv = 0; iv < STAT_COUNT; ++iv)
-				team[TEAM_SLOT(slot, TRAINER_HP_IV + iv)] = (genetic & (0x1F << (5 * iv))) >> (5 * iv);
-
-			team[TEAM_SLOT(slot, TRAINER_SPECIES)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-			team[TEAM_SLOT(slot, TRAINER_FORM)] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-			team[TEAM_SLOT(slot, TRAINER_LEVEL)] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-
-			team[TEAM_SLOT(slot, TRAINER_HELD_ITEM)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-
-			for (u32 moveSlot = 0; moveSlot < 4; ++moveSlot)
-			{
-				u16 moveData = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-
-				team[TEAM_SLOT(slot, TRAINER_MOVE_1 + moveSlot)] = moveData & 0x7FFF;
-				team[TEAM_SLOT(slot, TRAINER_MAX_PP_1 + moveSlot)] = ((moveData & 0x8000) != 0);
-			}
-
-			team[TEAM_SLOT(slot, TRAINER_ABILITY)] = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
-
-			for (u32 ev = 0; ev < STAT_COUNT; ++ev)
-				team[TEAM_SLOT(slot, TRAINER_HP_EV + ev)] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-
-			team[TEAM_SLOT(slot, TRAINER_NATURE)] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-			team[TEAM_SLOT(slot, TRAINER_HAPPINESS)] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-			team[TEAM_SLOT(slot, TRAINER_STATUS)] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-			team[TEAM_SLOT(slot, TRAINER_HP_PERCENT)] = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
-			
-			break;
-		}
-	}
-
-	ReleaseFileStream(fileStream);
-	return true;
-}
-
-void SetBaseTrainerTeamData(const TrainerTeamData& team, u32 slot, FileStream& fileStream)
-{
-	FileStreamPutBack<u8>(fileStream, (u8)team[TEAM_SLOT(slot, TRAINER_DIFFICULTY)]);
-
-	u8 abilAndSex = team[TEAM_SLOT(slot, TRAINER_SEX)] & 0x0F;
-	abilAndSex |= (team[TEAM_SLOT(slot, TRAINER_ABILITY_SLOT)] << 4) & 0xF0;
-	FileStreamPutBack<u8>(fileStream, abilAndSex);
-
-	FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_LEVEL)]);
-	FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_SPECIES)]);
-	FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_FORM)]);
-}
-
-bool Engine::SaveTrainerTeam(const TrainerTeamData& team, const TrainerData& trainer, const string& file)
-{
-	FileStream fileStream;
-	if (!LoadEmptyFileStream(fileStream))
-		return false;
-
-	for (u32 slot = 0; slot < (u32)trainer[POKEMON_COUNT]; ++slot)
-	{
-		switch (trainer[TRAINER_TYPE])
-		{
-		case SIMPLE_TRAINER:
-			SetBaseTrainerTeamData(team, slot, fileStream);
-			break;
-		case MOVE_TRAINER:
-			SetBaseTrainerTeamData(team, slot, fileStream);
-
-			FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_MOVE_1)]);
-			FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_MOVE_2)]);
-			FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_MOVE_3)]);
-			FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_MOVE_4)]);
-			break;
-		case ITEM_TRAINER:
-			SetBaseTrainerTeamData(team, slot, fileStream);
-
-			FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_HELD_ITEM)]);
-			break;
-		case GOOD_TRAINER:
-			SetBaseTrainerTeamData(team, slot, fileStream);
-
-			FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_HELD_ITEM)]);
-
-			FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_MOVE_1)]);
-			FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_MOVE_2)]);
-			FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_MOVE_3)]);
-			FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_MOVE_4)]);
-			break;
-		case PERFECT_TRAINER:
-			u32 genetic = team[TEAM_SLOT(slot, TRAINER_SEX)] << 30;
-			for (u32 iv = 0; iv < STAT_COUNT; ++iv)
-				genetic |= (team[TEAM_SLOT(slot, TRAINER_HP_IV + iv)] & 0x1F) << (5 * iv);
-			FileStreamPutBack<u32>(fileStream, genetic);
-
-			FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_SPECIES)]);
-			FileStreamPutBack<u8>(fileStream, (u8)team[TEAM_SLOT(slot, TRAINER_FORM)]);
-			FileStreamPutBack<u8>(fileStream, (u8)team[TEAM_SLOT(slot, TRAINER_LEVEL)]);
-
-			FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_HELD_ITEM)]);
-
-			for (u32 moveSlot = 0; moveSlot < 4; ++moveSlot)
-			{
-				u16 moveData = team[TEAM_SLOT(slot, TRAINER_MOVE_1 + moveSlot)];
-
-				if (team[TEAM_SLOT(slot, TRAINER_MAX_PP_1 + moveSlot)])
-					moveData |= 0x8000;
-				FileStreamPutBack<u16>(fileStream, moveData);
-			}
-
-			FileStreamPutBack<u16>(fileStream, (u16)team[TEAM_SLOT(slot, TRAINER_ABILITY)]);
-
-			for (u32 ev = 0; ev < STAT_COUNT; ++ev)
-				FileStreamPutBack<u8>(fileStream, (u8)team[TEAM_SLOT(slot, TRAINER_HP_EV + ev)]);
-
-			FileStreamPutBack<u8>(fileStream, (u8)team[TEAM_SLOT(slot, TRAINER_NATURE)]);
-			FileStreamPutBack<u8>(fileStream, (u8)team[TEAM_SLOT(slot, TRAINER_HAPPINESS)]);
-			FileStreamPutBack<u8>(fileStream, (u8)team[TEAM_SLOT(slot, TRAINER_STATUS)]);
-			FileStreamPutBack<u8>(fileStream, (u8)team[TEAM_SLOT(slot, TRAINER_HP_PERCENT)]);
-			break;
-		}
-	}
-
-	SaveFileStream(fileStream, file);
-	ReleaseFileStream(fileStream);
-	return true;
-}
-
-void Engine::HandleReverseEvent()
-{
-	if (!reverseEvents.size())
 		return;
+	}
 
-	Event& topEvent = reverseEvents.back();
+	if (value > max || value < min)
+	{
+		ImGui::Text(label + "(Error): " + to_string(value));
+		ImGui::SameLine();
+		if (ImGui::Button(LABEL("Fix", (int)field)))
+		{
+			StartAction(selectable, selected, group);
+			SetDataValue(data, idx, field, min);
+			EndAction();
+		}
+		return;
+	}
 
-	modules[topEvent.type]->HandleReverseEvent(&topEvent);
-		
-	delete topEvent.value;
-	reverseEvents.pop_back();
+	ImGui::SetNextItemWidth(40.0f);
+
+	if (ImGui::InputInt(LABEL(label, (int)field), &value, 0) && ImGui::IsItemDeactivatedAfterEdit())
+	{
+		if (value > max)
+			value = max;
+		if (value < min)
+			value = min;
+
+		StartAction(selectable, selected, group);
+		SetDataValue(data, idx, field, value);
+		EndAction();
+	}
 }
 
-void Engine::SendGroupEvent(u32 group)
+void Engine::ComboBox(Data* data, u32 idx, u32 field, u32* selectable, u32 selected, u32 group, const string& label, const std::vector<std::string>* const list)
 {
+	int value = data->GetValue(project, idx, field);
+	if (value == data->nullValue)
+	{
+		if (list && !list->empty())
+		{
+			if (ImGui::Button(LABEL(label + "Null", (int)field)))
+			{
+				StartAction(selectable, selected, group);
+				SetDataValue(data, idx, field, 0);
+				EndAction();
+			}
+		}
+		else
+		{
+			ImGui::Text("No values");
+		}
+		return;
+	}
+
+	if (!list || value < 0 || value >= (int)list->size())
+	{
+		ImGui::Text(label + "(Error): " + to_string(value));
+		ImGui::SameLine();
+		if (list && !list->empty())
+		{
+			if (ImGui::Button(LABEL("Fix", (int)field)))
+			{
+				StartAction(selectable, selected, group);
+				SetDataValue(data, idx, field, 0);
+				EndAction();
+			}
+		}
+		else
+		{
+			ImGui::Text("No values");
+		}
+		
+		return;
+	}
+
+	ImGui::SetNextItemWidth(150.0f);
+	if (ImGui::TextInputComboBox(LABEL(label, (int)field), list, &value))
+	{
+		StartAction(selectable, selected, group);
+		SetDataValue(data, idx, field, value);
+		EndAction();
+	}
+}
+
+void Engine::CheckBox(Data* data, u32 idx, u32 field, u32* selectable, u32 selected, u32 group, const string& label)
+{
+	int value = data->GetValue(project, idx, field);
+	if (value == data->nullValue)
+	{
+		if (ImGui::Button(LABEL(label + "Null", (int)field)))
+		{
+			StartAction(selectable, selected, group);
+			SetDataValue(data, idx, field, 0);
+			EndAction();
+		}
+		return;
+	}
+
+	if (value > 1 || value < 0)
+	{
+		ImGui::Text(label + "(Error): " + to_string(value));
+		ImGui::SameLine();
+		if (ImGui::Button(LABEL("Fix", (int)field)))
+		{
+			StartAction(selectable, selected, group);
+			SetDataValue(data, idx, field, 0);
+			EndAction();
+		}
+		return;
+	}
+
+	bool baalue = (bool)value; // Get it?
+	if (ImGui::Checkbox(LABEL(label, (int)field), &baalue))
+	{
+		StartAction(selectable, selected, group);
+		SetDataValue(data, idx, field, (int)baalue);
+		EndAction();
+	}
+}
+
+void Engine::ListBox(Data* data, u32 idx, u32 firstField, u32* selectable, u32 selected, u32 group, const string& label, const vector<string>* const list)
+{
+	ImGui::Text(label);
+	if (ImGui::BeginListBox(string("##" + label).c_str(), ImVec2(150.0f, 200.0f)))
+	{
+		if (!list)
+		{
+			ImGui::Text("(Error): No values");
+		}
+		else
+		{
+			for (u32 listIdx = 0; listIdx < (u32)list->size(); ++listIdx)
+				CheckBox(data, idx, firstField + listIdx, selectable, selected, group, list->at(listIdx));
+		}
+		ImGui::EndListBox();
+	}
+}
+
+ReturnState Engine::RenderGUI()
+{
+	if (quit)
+	{
+		if (quitMessage.empty())
+			return STOP;
+
+		ReturnState exitState = OK;
+		ImGui::Begin("The engine needs to shut down");
+		ImGui::Text(quitMessage);
+		if (ImGui::Button("OK"))
+			exitState = STOP;
+		ImGui::End();
+		return exitState;
+	}
+
+	project->width = (u32)width;
+	project->height = (u32)height;
+
+	static bool commandInput = false;
+	if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl))
+		commandInput = true;
+	if (ImGui::IsKeyReleased(ImGuiKey_LeftCtrl))
+		commandInput = false;
+
+	if (commandInput)
+	{
+		if (ImGui::IsKeyPressed(ImGuiKey_S))
+			Save();
+
+		if (ImGui::IsKeyPressed(ImGuiKey_Z))
+			ReverseAction();
+
+		for (u32 group = POKEMON_GROUP; group <= ENCOUNTER_GROUP; ++group)
+			if (ImGui::IsKeyPressed((ImGuiKey)(ImGuiKey_0 + group)))
+				project->group = group;
+	}
+	MenuBar();
+
+	ReturnState moduleState = OK;
 	for (u32 idx = 0; idx < (u32)modules.size(); ++idx)
 	{
-		if (modules[idx]->group == group)
+		if (modules[idx]->group == ENGINE_GROUP ||
+			modules[idx]->group == project->group)
 		{
-			modules[idx]->HandleGroupEvent(nullptr);
+			moduleState = modules[idx]->RenderGUI();
+			if (moduleState != OK)
+				break;
 		}
 	}
+
+	return moduleState;
 }
 
-void Engine::Save()
+bool Engine::LoadEngine()
 {
-	for (u32 idx = 0; idx < (u32)saveEvents.size(); ++idx)
-	{
-		Event* saveEvent = &(saveEvents[idx]);
-		modules[saveEvent->type]->HandleSaveEvent(saveEvent);
-	}
-	saveEvents.clear();
+	Log(INFO, "Loading engine");
 
-	SaveProjectSettings(*project);
+	// Only enable the Code Injection for sopported game codebases
+	for (u32 codeIdx = 0; codeIdx < (u32)validGameCodes.size(); ++codeIdx)
+	{
+		if (project->gameCode == validGameCodes.at(codeIdx))
+		{
+			enableBuilder = true;
+			break;
+		}
+	}
+
+	const vector<u32> textFileIdexes = {
+	ALL_TEXT_FILES
+	};
+	for (u32 textIdx = 0; textIdx < (u32)textFileIdexes.size(); ++textIdx)
+	{
+		u32 idx = textFileIdexes[textIdx];
+		FileStream stream = LoadFileFromNarc(project->ctrMapProjectDir, project->romDir, TEXT_NARC_PATH, idx);
+		if (!stream.data)
+		{
+			Log(INFO, "    Failed loading text NARC file %d", idx);
+			return false;
+		}
+
+		vector<string> text;
+		LoadAlle5Data(stream, text);
+		if (text.empty())
+		{
+			Log(INFO, "    Failed loading text data %d", idx);
+			ReleaseFileStream(stream);
+			return false;
+		}
+		ReleaseFileStream(stream);
+
+		textFiles[idx] = text;
+	}
+
+	u32 gameVersion = 0;
+	for (u32 versionIdx = 0; versionIdx < (u32)alternateVersions.size(); ++versionIdx)
+	{
+		if (project->game == alternateVersions.at(versionIdx))
+		{
+			gameVersion = 1;
+			break;
+		}
+	}
+
+	Log(INFO, "    Loading Data");
+	AddData<PokemonData>(pokemons, narcPaths.at(POKEMON_NARCS).paths[gameVersion]);
+	AddData<ItemData>(items, narcPaths.at(ITEM_NARCS).paths[gameVersion]);
+	AddData<MoveData>(moves, narcPaths.at(MOVE_NARCS).paths[gameVersion]);
+	AddData<TrainerData>(trainers, narcPaths.at(TRAINER_NARCS).paths[gameVersion]);
+	AddData<ZoneData>(zones, narcPaths.at(ZONE_NARCS).paths[gameVersion]);
+	AddData<EncounterData>(encounters, narcPaths.at(ENCOUNTER_NARCS).paths[gameVersion]);
+
+	Log(INFO, "    Setting up PW2Code");
+	string buildSettingsPath = PathConcat(project->path, PATCH_SETTINGS_FILE);
+	if (!PathExists(buildSettingsPath))
+		InstallPatch(buildSettingsPath);
+
+	Log(INFO, "    Creating modules");
+	modules.push_back(new List(this, POKEMON_GROUP, &project->pokemon, GetTextFile(PKM_NAME_FILE_ID)));
+	modules.push_back(new Pokemon(this, POKEMON_GROUP));
+
+	modules.push_back(new List(this, ITEM_GROUP, &project->item, GetTextFile(ITEM_NAME_FILE_ID)));
+	modules.push_back(new Item(this, ITEM_GROUP));
+
+	modules.push_back(new List(this, MOVE_GROUP, &project->move, GetTextFile(MOVE_NAME_FILE_ID)));
+	modules.push_back(new Move(this, MOVE_GROUP));
+
+	modules.push_back(new List(this, TRAINER_GROUP, &project->trainer, GetTextFile(TRAINER_NAME_FILE_ID)));
+	modules.push_back(new Trainer(this, TRAINER_GROUP));
+
+	modules.push_back(new List(this, ENCOUNTER_GROUP, &project->location, GetTextFile(LOCATION_NAME_FILE_ID)));
+	modules.push_back(new Encounter(this, ENCOUNTER_GROUP));
+
+	Log(INFO, "    Loading success");
+	return true;
+}
+
+bool Engine::ClearEngine()
+{
+	Log(INFO, "Clearing engine");
+
+	for (u32 idx = 0; idx < (u32)datas.size(); ++idx)
+		delete datas[idx];
+
+	for (u32 idx = 0; idx < (u32)modules.size(); ++idx)
+		delete modules[idx];
+
+	Log(INFO, "    Clearing success");
+	return true;
+}
+
+bool Engine::SaveData()
+{
+	for (u32 idx = 0; idx < (u32)datas.size(); ++idx)
+		datas.at(idx)->Save(project);
+
+	return true;
+}
+
+bool Engine::ReverseAction()
+{
+	if (actions.empty())
+		return false;
+
+	const Action& action = actions.back();
+	*action.selectable = action.selected;
+	project->group = action.group;
+
+	const u32 actionIdx = (u32)actions.size() - 1;
+	for (u32 idx = 0; idx < (u32)datas.size(); ++idx)
+		datas.at(idx)->ReverseAction(actionIdx);
+	actions.erase(actions.begin() + actionIdx);
+
+	return true;
+}
+
+bool Engine::ReloadData()
+{
+	Save();
+	if (!ClearEngine())
+	{
+		Quit(RELOAD_CLEAR_QUIT);
+		return false;
+	}
+	if (!LoadEngine())
+	{
+		Quit(RELOAD_LOAD_QUIT);
+		return false;
+	}
+	return true;
+}
+
+void PatchSetting(KlangVar& var, bool isChild)
+{
+	string text;
+	if (isChild)
+		text += "    ";
+	text += var.name;
+
+	ImGui::Text(text);
+	ImGui::SameLine();
+
+	bool value = (bool)var.Value();
+	if (ImGui::Checkbox((string("##") + var.name).c_str(), &value))
+		var.SetValue((int)value);
+}
+
+void Engine::MenuBar()
+{
+	if (ImGui::BeginMainMenuBar())
+	{
+		if (ImGui::BeginMenu("Project"))
+		{
+			ImGui::BeginDisabled(!UsavedData());
+			if (ImGui::MenuItem("Save", "Ctrl+S"))
+				Save();
+			ImGui::EndDisabled();
+
+			if (ImGui::MenuItem("Save & Exit"))
+			{
+				Save();
+				Quit();
+			}
+
+			if (ImGui::MenuItem("Undo", "Ctrl+Z"))
+				ReverseAction();
+
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("Editors"))
+		{
+			if (ImGui::MenuItem(u8"Pokémon", "Ctrl+1"))
+				project->group = POKEMON_GROUP;
+			if (ImGui::MenuItem("Items", "Ctrl+2"))
+				project->group = ITEM_GROUP;
+			if (ImGui::MenuItem("Moves", "Ctrl+3"))
+				project->group = MOVE_GROUP;
+			if (ImGui::MenuItem("Trainers", "Ctrl+4"))
+				project->group = TRAINER_GROUP;
+			if (ImGui::MenuItem("Encounters", "Ctrl+5"))
+				project->group = ENCOUNTER_GROUP;
+			ImGui::EndMenu();
+		}
+
+		ImGui::BeginDisabled(!enableBuilder || !PMCCheck());
+		if (ImGui::BeginMenu("Patcher"))
+		{
+			if (ImGui::MenuItem("Options"))
+			{
+				patcherOptions = !patcherOptions;
+				if (patcherOptions)
+				{
+					string patchSettingsPath = DEPLOY_PATCH_DIR;
+					if (!PathExists(patchSettingsPath))
+						patchSettingsPath = DEV_PATCH_DIR;
+
+					patchSettingsPath = PathConcat(patchSettingsPath, "settings.h");
+					LoadKlang(patchSettings, patchSettingsPath);
+				}
+			}
+
+			bool patchInstalled = PatchIsInstalled();
+
+			string buildText = "Save + Build";
+			if (patchInstalled)
+				buildText = "Save + Rebuild";
+			if (ImGui::MenuItem(buildText.c_str()))
+			{
+				Save();
+				BuildPatch();
+				ReloadData();
+			}
+
+			ImGui::BeginDisabled(!patchInstalled);
+			if (ImGui::MenuItem("Save + Uninstall"))
+			{
+				Save();
+				UninstallPatch();
+				ReloadData();
+			}
+			ImGui::EndDisabled();
+
+			ImGui::EndMenu();
+		}
+		ImGui::EndDisabled();
+
+		ImGui::EndMainMenuBar();
+	}
+
+	if (patcherOptions)
+	{
+		ImGui::Begin("Patcher Options", &patcherOptions);
+
+		for (u32 setting = 0; setting < (u32)patchSettings.vars.size(); ++setting)
+		{
+			KlangVar& parent = patchSettings.vars[setting];
+			PatchSetting(parent, false);
+
+			ImGui::BeginDisabled(parent.Value() == 0);
+			for (u32 child = 0; child < (u32)parent.dependentVars.size(); ++child)
+			{
+				KlangVar& dependent = parent.dependentVars[child];
+				PatchSetting(dependent, true);
+			}
+			ImGui::EndDisabled();
+
+			ImGui::Separator();
+		}
+
+		ImGui::End();
+	}
 }

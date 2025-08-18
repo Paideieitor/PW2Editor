@@ -3,7 +3,6 @@
 #include "System.h"
 
 #include "Utils/Alle5Format.h"
-#include "Utils/FileUtils.h"
 #include "Utils/StringUtils.h"
 
 map<wchar_t, wchar_t> specialCharacters = {
@@ -128,18 +127,13 @@ wchar_t DecryptCharacter(wchar_t character, u16& key)
     return character;
 }
 
-bool LoadAlle5File(const string& path, vector<string>& lines)
+bool LoadAlle5Data(const FileStream& fileStream, vector<string>& lines)
 {
-    FileStream fileStream;
-    if (!LoadFileStream(fileStream, path))
-        return false;
-
     u16 textSections = FileStreamRead<u16>(fileStream, 0);
     u16 lineCount = FileStreamRead<u16>(fileStream, 2);
     if (lineCount == 0)
     {
-        Log(WARNING, "Empty text file (%s)", path.c_str());
-        ReleaseFileStream(fileStream);
+        Log(WARNING, "Empty text file");
         return false;
     }
 
@@ -150,20 +144,18 @@ bool LoadAlle5File(const string& path, vector<string>& lines)
     // Some sanity checking to prevent errors.
     if (initialKey != 0)
     {
-        Log(WARNING, "Invalid initial key in text file (%s)", path.c_str());
-        ReleaseFileStream(fileStream);
+        Log(WARNING, "Invalid initial key in text file");
         return false;
     }
     if (sectionData + totalLength != fileStream.length || textSections != 1)
     {
-        Log(INFO, "Invalid text file (%s), common with CTRMap text files processing either way", path.c_str());
+        Log(INFO, "Invalid text file, common with CTRMap text files processing either way");
     }
 
     u32 sectionLength = FileStreamRead<u32>(fileStream, sectionData);
     if (sectionLength != totalLength)
     {
-        Log(WARNING, "Section size and overall size do not match in text file (%s)", path.c_str());
-        ReleaseFileStream(fileStream);
+        Log(WARNING, "Section size and overall size do not match in text file");
         return false;
     }
 
@@ -239,7 +231,7 @@ bool LoadAlle5File(const string& path, vector<string>& lines)
                 continue;
             }
 
-            line += character; 
+            line += character;
         }
         if (is9Bit)
             line += Process9Bit(line9Bit);
@@ -249,8 +241,19 @@ bool LoadAlle5File(const string& path, vector<string>& lines)
         key += 0x2983;
     }
 
-    ReleaseFileStream(fileStream);
     return true;
+}
+
+bool LoadAlle5File(const string& path, vector<string>& lines)
+{
+    FileStream fileStream;
+    if (!LoadFileStream(fileStream, path))
+        return false;
+
+    bool output = LoadAlle5Data(fileStream, lines);
+
+    ReleaseFileStream(fileStream);
+    return output;
 }
 
 wstring MakeWideLine(string line)

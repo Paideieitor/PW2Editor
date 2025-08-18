@@ -11,9 +11,8 @@ using namespace std;
 #define POKEMON_GROUP 1u
 #define ITEM_GROUP 2u
 #define MOVE_GROUP 3u
-#define ENCOUNTER_GROUP 4u
-#define TRAINER_GROUP 5u
-
+#define TRAINER_GROUP 4u
+#define ENCOUNTER_GROUP 5u
 
 #define SETTINGS_NAME "settings"
 	#define DEFAULT_WINDOW_WIDTH 1440u
@@ -34,12 +33,18 @@ using namespace std;
 	#define DEFAULT_SELECTED_ZONE_IDX 0u
 	#define DEFAULT_SELECTED_TRAINER_IDX 0u
 	#define DEFAULT_MAX_EVENTS 2000u
-	#define DEFAULT_CUSTOM_FEATURES false
+	#define DEFAULT_CUSTOM_FEATURES falseç
 
-#define PROJECTS_PATH "Projects"
+#define STAT_COUNT 6
+
+#define PROJECTS_PATH "projects.txt"
+#define CTRMAP_PW2_DIR "pw2"
 
 #define CTRMAP_FILE_EXTENSION "cmproj"
 #define CTRMAP_VFSBASE "VFSBase"
+#define CTRMAP_FILESYSTEM_DIR "vfs\\data\\a"
+#define ROM_FILESYSTEM_DIR "data\\a"
+#define ROM_HEADER_NAME "header.bin"
 
 #define ARRAY_COUNT(arr) sizeof(arr) / sizeof(arr[0])
 

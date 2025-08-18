@@ -82,7 +82,7 @@ extern "C" {
  *  #define GLFW_EXPOSE_NATIVE_WIN32
  *  #define GLFW_EXPOSE_NATIVE_WGL
  *  #define GLFW_NATIVE_INCLUDE_NONE
- *  #include <GLFW/glfw3native.h>
+ *  #include "glfw3/glfw3native.h"
  *  @endcode
  */
 

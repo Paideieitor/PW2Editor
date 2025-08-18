@@ -510,6 +510,21 @@ vector<u32> StringToU32Vector(const string& input, char separator)
     return output;
 }
 
+#define NULL_CHARS string(" \n\t\"")
+void CleanLine(string& line)
+{
+    size_t start = line.find_first_not_of(NULL_CHARS);
+    if (start == string::npos)
+        start = 0;
+    size_t end = line.find_last_not_of(NULL_CHARS);
+    if (end == string::npos)
+        end = line.size();
+    else
+        ++end;
+
+    line = line.substr(start, end - start);
+}
+
 #include <locale>
 
 string LowerCase(const string& input)

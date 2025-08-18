@@ -3,6 +3,7 @@
 #include "Externals/nativefiledialog/nfd.h"
 
 #include "Utils/FileUtils.h"
+#include "Utils/StringUtils.h"
 #include "Utils/KlinFormat.h"
 
 #include "Windows/Wizard.h"
@@ -33,15 +34,15 @@ ReturnState Wizard::RenderGUI()
 
 	ImGui::Text("Selected Project:");
 	if (projectList.size())
-		ImGui::Text(projectList[selectedIdx].name);
+		ImGui::Text(projectList.at(selectedIdx).name);
 	else
 		ImGui::Text("There are no projects");
 
 	ImGui::Separator();
 
-	if (ImGui::Button("Create Project"))
+	if (ImGui::Button("Load Project"))
 	{
-		Log(INFO, "Wizard Creating Project");
+		Log(INFO, "Wizard Loading Project");
 		switch (CreateProject())
 		{
 		case OK:
@@ -56,13 +57,16 @@ ReturnState Wizard::RenderGUI()
 
 	ImGui::SameLine();
 
+	ImGui::BeginDisabled(projectList.empty());
 	if (ImGui::Button("Open Project"))
 	{
 		Log(INFO, "Wizard Opening Project!");
 		UpdateProjectListOrderOpen(selectedIdx);
+		ImGui::EndDisabled();
 		ImGui::End();
 		return STOP;
 	}
+	ImGui::EndDisabled();
 
 	ImGui::SameLine();
 
@@ -73,29 +77,35 @@ ReturnState Wizard::RenderGUI()
 	{
 		ImGui::Begin("WARNING:");
 
-		ImGui::Text("Are you sure you want to delete this project? This can't be undone!");
-		if (ImGui::Button("Delete"))
+		ImGui::Text("Do you want to delete this projects data? This can't be undone!");
+
+		bool removeButton = ImGui::Button("No, only remove");
+		ImGui::SameLine();
+		bool deleteButton = ImGui::Button("Yes, delete data");
+		if (removeButton || deleteButton)
 		{
-			Log(INFO, "Wizard Deleteing Project!");
+			Log(INFO, "Wizard Removing Project");
 
-			string projectPath = string(PROJECTS_PATH) + PATH_SEPARATOR + projectList[selectedIdx].name;
-			if (RemoveFolder(projectPath) != -1)
+			if (deleteButton)
 			{
-				projectList.erase(projectList.begin() + selectedIdx);
-				if (!projectList.size())
-					selectedIdx = 0;
-				else if (selectedIdx >= projectList.size())
-					selectedIdx = (int)projectList.size() - 1;
-
-				UpdateProjectListOrderDelete(selectedIdx);
-				showDeleteMessage = false;
-
-				Log(INFO, "Wizard Deleted Project at %s!", projectPath.c_str());
+				Log(INFO, "Wizard Deleteing Project!");
+				string projectPath = projectList.at(selectedIdx).path;
+				if (RemoveFolder(projectPath) != -1)
+					Log(INFO, "Wizard Deleted Project at %s!", projectPath.c_str());
+				else
+					Log(WARNING, "Unable to delete project %s", projectPath.c_str());
 			}
-			else
-			{
-				Log(WARNING, "Unable to delete project %s", projectPath.c_str());
-			}
+
+			projectList.erase(projectList.begin() + selectedIdx);
+			if (!projectList.size())
+				selectedIdx = 0;
+			else if (selectedIdx >= projectList.size())
+				selectedIdx = (int)projectList.size() - 1;
+
+			UpdateProjectListOrderDelete(selectedIdx);
+			showDeleteMessage = false;
+
+			SetProjectPaths(PROJECTS_PATH);
 		}
 
 		ImGui::SameLine();
@@ -115,9 +125,10 @@ ReturnState Wizard::RenderGUI()
 		ImGui::BeginDisabled(showDeleteMessage);
 		if (ImGui::BeginListBox(" "))
 		{
-			for (int projectIdx = 0; projectIdx < projectList.size(); ++projectIdx)
+			for (int projectIdx = 0; projectIdx < (int)projectList.size(); ++projectIdx)
 			{
-				if (ImGui::Selectable(LABEL(projectList[projectIdx].name, projectIdx), selectedIdx == projectIdx))
+				Project& project = projectList.at(projectIdx);
+				if (ImGui::Selectable(LABEL(project.name, projectIdx), selectedIdx == projectIdx))
 					selectedIdx = projectIdx;
 			}
 			ImGui::EndListBox();
@@ -130,21 +141,53 @@ ReturnState Wizard::RenderGUI()
 	return OK;
 }
 
+vector<string> Wizard::GetProjectPaths(const string& path)
+{
+	vector<string> projectPaths;
+
+	FILE* file;
+	fopen_s(&file, path.c_str(), "r");
+	if (file)
+	{
+		char line[1024];
+		fgets(line, 1024, file);
+		while (!feof(file))
+		{
+			string lineStr = line;
+			CleanLine(lineStr);
+			projectPaths.emplace_back(lineStr);
+
+			fgets(line, 1024, file);
+		}
+		fclose(file);
+	}
+
+	return projectPaths;
+}
+
+void Wizard::SetProjectPaths(const string& path)
+{
+	FILE* file;
+	fopen_s(&file, path.c_str(), "w");
+	if (file)
+	{
+		for (u32 idx = 0; idx < (u32)projectList.size(); ++idx)
+		{
+			fwrite(projectList.at(idx).path.c_str(), sizeof(char), projectList.at(idx).path.size(), file);
+			fputc('\n', file);
+		}
+		fclose(file);
+	}
+}
+
 void Wizard::LoadProjectList()
 {
 	projectList.reserve(16);
 
-	if (!PathExists(PROJECTS_PATH))
-	{
-		Log(WARNING, "Projects folder does not exist, creating folder...");
-		if (IsFilePath(PROJECTS_PATH))
-		{
-			Log(CRITICAL, "Unable to create projects folder");
-			return;
-		}
-	}
-
-	vector<string> folderList = GetFolderElementList(PROJECTS_PATH);
+	vector<string> folderList;
+	if (PathExists(PROJECTS_PATH))
+		folderList = GetProjectPaths(PROJECTS_PATH);
+	
 	for (u32 idx = 0; idx < folderList.size(); ++idx)
 	{
 		Project project;
@@ -244,13 +287,13 @@ ReturnState Wizard::CreateProject()
 		Project project;
 		project.order = 0;
 
-		project.ctrMapProjectPath = path;
-		SeparatePathAndFile(project.ctrMapProjectPath, project.name);
-		project.name = project.name.substr(0, project.name.length() - sizeof(CTRMAP_FILE_EXTENSION));
+		project.ctrMapProjectDir = path;
+		SeparatePathAndFile(project.ctrMapProjectDir, project.name);
+		project.name = PathRemoveExtension(project.name);
 
-		for (u32 projectIdx = 0; projectIdx < projectList.size(); ++projectIdx)
+		for (u32 projectIdx = 0; projectIdx < (u32)projectList.size(); ++projectIdx)
 		{
-			if (project.name == projectList[projectIdx].name)
+			if (project.name == projectList.at(projectIdx).name)
 			{
 				Log(WARNING, "Could not create project %s, there is already a project with the same name", project.name.c_str());
 				return STOP;
@@ -259,7 +302,6 @@ ReturnState Wizard::CreateProject()
 
 		FILE* ctrProjectFile = nullptr;
 		fopen_s(&ctrProjectFile, path.c_str(), "r");
-
 		if (!ctrProjectFile)
 		{
 			Log(WARNING, "Could not open CTRMap project file (%s)", path.c_str());
@@ -274,13 +316,13 @@ ReturnState Wizard::CreateProject()
 			bool isBaseLine = (bool)lineStr.find(CTRMAP_VFSBASE);
 			if (isBaseLine == 0)
 			{
-				project.romPath = lineStr.substr(lineStr.find_first_of('\"') + 1);
-				project.romPath = project.romPath.substr(0, project.romPath.length() - 2);
-				NormalizePathSeparator(project.romPath);
+				project.romDir = lineStr.substr(lineStr.find_first_of('\"') + 1);
+				project.romDir = project.romDir.substr(0, project.romDir.length() - 2);
+				NormalizePathSeparator(project.romDir);
 
-				if (!PathExists(project.romPath))
+				if (!PathExists(project.romDir))
 				{
-					Log(WARNING, "ROM path (%s) does not exist", project.romPath.c_str());
+					Log(WARNING, "ROM path (%s) does not exist", project.romDir.c_str());
 					fclose(ctrProjectFile);
 					return STOP;
 				}
@@ -290,31 +332,74 @@ ReturnState Wizard::CreateProject()
 		}
 		fclose(ctrProjectFile);
 
-		project.path = string(PROJECTS_PATH) + PATH_SEPARATOR + project.name;
-		if (!CreateFolder(project.path.c_str()))
+		FILE* headerFile = nullptr;
+		string headerPath = PathConcat(project.romDir, ROM_HEADER_NAME);
+		fopen_s(&headerFile, headerPath.c_str(), "rb");
+		if (!headerFile)
 		{
-			Log(WARNING, "Unable to create %s project folder", project.name.c_str());
+			Log(WARNING, "Could not open ROM header file (%s)", headerPath.c_str());
 			return STOP;
 		}
 
-		project.settingsPath = project.path + PATH_SEPARATOR + SETTINGS_NAME + KLIN_TERMINATION;
-		if (!CreateFile(project.settingsPath))
+		char headerData[16];
+		if (fread_s(headerData, 16, sizeof(char), 16, headerFile) != 16)
 		{
-			Log(WARNING, "Could not create project file (%s)", project.settingsPath.c_str());
+			Log(WARNING, "Could not read ROM header data (%s)", headerPath.c_str());
+			fclose(headerFile);
 			return STOP;
 		}
 
-		if (SaveProjectSettings(project) != OK)
-		{
-			Log(WARNING, "Could not save project in file (%s)", project.settingsPath.c_str());
-			return STOP;
-		}
+		u32 headerIdx = 0;
+		for (; headerIdx < 12; ++headerIdx)
+			project.game.push_back(headerData[headerIdx]);
+		for (; headerIdx < 16; ++headerIdx)
+			project.gameCode.push_back(headerData[headerIdx]);
 
+		CleanLine(project.game);
+		fclose(headerFile);
+
+		project.path = PathConcat(project.ctrMapProjectDir, CTRMAP_PW2_DIR);
+		if (PathExists(project.path))
+		{
+			if (LoadProjectSettings(project, project.path) != OK)
+			{
+				Log(WARNING, "Could not load existing project (%s)", project.path.c_str());
+				return STOP;
+			}
+
+			Log(INFO, "Loaded Project %s", project.name.c_str());
+		}
+		else
+		{
+			if (!CreateFolder(project.path.c_str()))
+			{
+				Log(WARNING, "Unable to create %s project folder", project.name.c_str());
+				return STOP;
+			}
+
+
+			project.settingsPath = PathConcat(project.path, string(SETTINGS_NAME) + KLIN_TERMINATION);
+			if (!CreateFile(project.settingsPath))
+			{
+				Log(WARNING, "Could not create project file (%s)", project.settingsPath.c_str());
+				return STOP;
+			}
+
+			if (SaveProjectSettings(project) != OK)
+			{
+				Log(WARNING, "Could not save project in file (%s)", project.settingsPath.c_str());
+				return STOP;
+			}
+
+			Log(INFO, "Created Project %s", project.name.c_str());
+		}
+		
 		projectList.insert(projectList.begin(), project);
 
 		UpdateProjectListOrderAdd();
 
-		Log(INFO, "Created Project %s", project.name.c_str());
+		SetProjectPaths(PROJECTS_PATH);
+
 		return OK;
 	}
 	case NFD_CANCEL:

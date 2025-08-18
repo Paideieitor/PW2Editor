@@ -38,10 +38,10 @@ bool ImGui::ComboBox(const char* label, const std::vector<std::string>& items, i
     return startSelected != *selected;
 }
 
-bool ImGui::TextInputComboBox(const char* label, const std::vector<std::string>& items, int* selected)
+bool ImGui::TextInputComboBox(const char* label, const std::vector<std::string>* const items, int* selected)
 {
     int startSelected = *selected;
-    if (ImGui::BeginCombo(label, items[*selected].c_str()))
+    if (ImGui::BeginCombo(label, items->at(*selected).c_str()))
     {
         static ImGuiTextFilter filter;
         if (ImGui::IsWindowAppearing())
@@ -52,10 +52,10 @@ bool ImGui::TextInputComboBox(const char* label, const std::vector<std::string>&
         ImGui::SetNextItemShortcut(ImGuiMod_Ctrl | ImGuiKey_F);
         filter.Draw("##Filter", -FLT_MIN);
 
-        for (int n = 0; n < items.size(); n++)
+        for (int n = 0; n < items->size(); n++)
         {
-            if (filter.PassFilter(items[n].c_str()))
-                if (ImGui::Selectable((items[n] + "##" + std::to_string(n)).c_str(), *selected == n))
+            if (filter.PassFilter(items->at(n).c_str()))
+                if (ImGui::Selectable((items->at(n) + "##" + std::to_string(n)).c_str(), *selected == n))
                     *selected = n;
 
         }

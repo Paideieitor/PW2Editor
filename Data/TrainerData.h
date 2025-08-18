@@ -1,8 +1,9 @@
 #ifndef _TRAINER_DATA_H
 #define _TRAINER_DATA_H
 
-#include <array>
-#include <vector>
+#include "Data/Data.h"
+
+#define TRAINER_NULL -1
 
 enum TrainerField
 {
@@ -49,14 +50,12 @@ enum TrainerField
 	IS_HEALER,
 	CASH,
 	POST_BATTLE_ITEM,
-	TRAINERDATA_MAX,
+	TRAINER_MAX,
 };
+#define TRAINER_START 0
+#define TRAINER_SIZE TRAINER_MAX
 
-typedef std::array<int, TRAINERDATA_MAX> TrainerData;
-
-void TrainerReset(TrainerData& trainer);
-
-enum TrainerPokemonField
+enum TeamField
 {
 	TRAINER_DIFFICULTY,
 	TRAINER_SEX,
@@ -90,8 +89,17 @@ enum TrainerPokemonField
 	TRAINER_HAPPINESS,
 	TRAINER_STATUS,
 	TRAINER_HP_PERCENT,
-	TRAINERPOKEMONDATA_MAX,
+	TRAINER_SHINY,
+	TEAM_MAX,
 };
+#define TEAM_COUNT 6
+#define TEAM_START (TRAINER_START + TRAINER_SIZE)
+#define TEAM_SIZE (TEAM_COUNT * TEAM_MAX)
+
+#define TRAINER_TEAM_SIZE (TRAINER_SIZE + TEAM_SIZE)
+
+#define TRAINER_FIELD(field) (TRAINER_START + field)
+#define TEAM_FIELD(slot, field) (TEAM_START + ((slot * TEAM_MAX) + field))
 
 enum TrainerType
 {
@@ -102,19 +110,11 @@ enum TrainerType
 	PERFECT_TRAINER,
 };
 
-#define MAX_TEAM_SIZE 6
-typedef std::array<int, TRAINERPOKEMONDATA_MAX * MAX_TEAM_SIZE> TrainerTeamData;
+class TrainerData : public Data
+{
+public:
 
-void ResetTrainerPokemon(TrainerTeamData& team, u32 slot);
-void DefaultTrainerPokemon(TrainerTeamData& team, u32 slot);
-
-void SwapTrainerPokemon(TrainerTeamData& team, u32 slot1, u32 slot2);
-void RemoveTrainerPokemon(TrainerTeamData& team, u32 slot);
-void InsertTrainerPokemon(TrainerTeamData& team, u32 slot);
-
-TrainerPokemonField GetFieldFromTeamSlot(u32 teamSlot, u32* slot = nullptr);
-
-#define TRAINER_NULL -1
-#define TEAM_SLOT(slot, field) ((slot * TRAINERPOKEMONDATA_MAX) + field)
+	virtual void GenerateSections(const vector<string>& narcPaths) override;
+};
 
 #endif // _TRAINER_DATA_H

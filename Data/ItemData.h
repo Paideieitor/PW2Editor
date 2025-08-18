@@ -1,7 +1,9 @@
 #ifndef _ITEM_DATA_H
 #define _ITEM_DATA_H
 
-#include <array>
+#include "Data/Data.h"
+
+#define ITEM_NULL -1
 
 enum ItemField
 {
@@ -12,8 +14,8 @@ enum ItemField
 	FLING_EFFECT,
 	FLING_POWER,
 	NATURAL_GIFT_POWER,
-	PACKED_FLAG_1,
-	PACKED_FLAG_2,
+	USABLE_FLAG,
+	REGISTRABLE_FLAG,
 	POCKET_FIELD,
 	NATURAL_GIFT_TYPE,
 	EFFECT_FIELD,
@@ -67,15 +69,20 @@ enum ItemField
 	FRIENDSHIP_1,
 	FRIENDSHIP_2,
 	FRIENDSHIP_3,
-	UNKNOWN_1,
-	UNKNOWN_2,
-	ITEMDATA_MAX,
+	ITEM_UNUSED_1,
+	ITEM_UNUSED_2,
+	ITEM_MAX,
 };
+#define ITEM_START 0
+#define ITEM_SIZE ITEM_MAX
 
-typedef std::array<int, ITEMDATA_MAX> ItemData;
+#define ITEM_FIELD(field) (ITEM_START + field)
 
-void ItemDataReset(ItemData& itemData);
+class ItemData : public Data
+{
+public:
 
-#define ITEMDATA_NULL -1
+	virtual void GenerateSections(const vector<string>& narcPaths) override;
+};
 
 #endif // _ITEM_DATA_H

@@ -1,32 +1,54 @@
-#ifndef _PERSONAL_H
-#define _PERSONAL_H
-
-#include <vector>
-#include <string>
-
-#include "Globals.h"
+#ifndef _POKEMON_MODULE_H
+#define _POKEMON_MODULE_H
 
 #include "Modules/Module.h"
 
-#include "Data/PersonalData.h"
-
-struct Pokemon;
-
-class Personal : public Module
+class Pokemon : public Module
 {
 public:
-	Personal() = delete;
-	Personal(Engine* const engine, u32 group);
-	~Personal();
+	Pokemon() = delete;
+	Pokemon(Engine* const engine, u32 group);
+	~Pokemon() {}
 
 	virtual ReturnState RenderGUI() override;
 
-	virtual void HandleReverseEvent(const Event* reverseEvent) override;
-	void HandleSaveEvent(Event* saveEvent) override;
-
 private:
 
-	vector<string> tms = {
+	void Personal(u32 form);
+	void Tutors(u32 form);
+
+	void Learnset(u32 form);
+
+	void Evolution(u32 form);
+
+	void Child(u32 form);
+
+	const vector<string>* const pokemons;
+	const vector<string>* const types;
+	const vector<string>* const abilities;
+	const vector<string>* const items;
+	const vector<string>* const moves;
+
+	const vector<string> eggGroups = {
+		"None",
+		"Monster",
+		"Water 1",
+		"Bug",
+		"Flying",
+		"Field",
+		"Fairy",
+		"Grass",
+		"Human-Like",
+		"Water 3",
+		"Mineral",
+		"Amorphous",
+		"Water 2",
+		"Ditto",
+		"Dragon",
+		"Unknown",
+	};
+
+	const vector<string> tms = {
 		"TM01 Hone Claws",
 		"TM02 Dragon Claw",
 		"TM03 Psyshock",
@@ -129,7 +151,7 @@ private:
 		"HM05 Waterfall",
 		"HM06 Dive"
 	};
-	vector<string> typeTutors = {
+	const vector<string> specialTutors = {
 		"Grass Pledge",
 		"Fire Pledge",
 		"Water Pledge",
@@ -138,8 +160,14 @@ private:
 		"Hydro Cannon",
 		"Draco Meteor",
 	};
-	vector<pair<string, vector<string>>> tutors = {
-		{"Driftveil Tutor",{
+
+	const vector<string> shardTutors = {
+		"Driftveil Tutor",
+		"Lentimas Tutor",
+		"Humilau Tutor",
+		"Nacrene Tutor",
+	};
+	const vector<string> redShardTutor = {
 		"Bug Bite",
 		"Covet",
 		"Super Fang",
@@ -155,8 +183,8 @@ private:
 		"Thunder Punch",
 		"Fire Punch",
 		"Ice Punch",
-	}},
-		{"Lentimas Tutor",{
+	};
+	const vector<string> blueShardTutor = {
 		"Magic Coat",
 		"Block",
 		"Earth Power",
@@ -174,8 +202,8 @@ private:
 		"Dragon Pulse",
 		"Hyper Voice",
 		"Iron Tail",
-	}},
-		{"Humilau Tutor",{
+	};
+	const vector<string> yellowShardTutor = {
 		"Bind",
 		"Snore",
 		"Knock Off",
@@ -189,8 +217,8 @@ private:
 		"Giga Drain",
 		"Drain Punch",
 		"Roost",
-	}},
-		{"Nacrene Tutor",{
+	};
+	const vector<string> greenShardTutor = {
 		"Gastro Acid",
 		"Worry Seed",
 		"Spite",
@@ -206,15 +234,38 @@ private:
 		"Stealth Rock",
 		"Sleep Talk",
 		"Skill Swap"
-	}},
 	};
-
-	bool moveMenu = false;
-
-	void ComboBox(PersonalData& personal, const char* label, const std::vector<std::string>& items, PersonalField field);
-	void InputInt(PersonalData& personal, const char* label, PersonalField field, int maxValue);
-	void CheckBox(PersonalData& personal, const char* label, PersonalField field);
-	void BitCheckBox(PersonalData& personal, const char* label, PersonalField field, u32 mask);
+	const vector<string> evolutionMethods = {
+		"None",
+		"Friendship",
+		"Friendship Morning",
+		"Friendship Night",
+		"Level Up",
+		"Trade",
+		"Trade with Item",
+		u8"Trade for Pokémon",
+		"Item Use",
+		"Level Up Atk. over Def.",
+		"Level Up Atk. equal Def.",
+		"Level Up Def. over Atk.",
+		"Level Up Random A",
+		"Level Up Random B",
+		"Level Up Ninjask",
+		"Level Up Shedinja",
+		"Level Up Beauty",
+		"Item Use Male",
+		"Item Use Female",
+		"Level Up with Item day",
+		"Level Up with Item night",
+		"Level Up with Move",
+		u8"Level Up with Pokémon in Party",
+		"Level Up Male",
+		"Level Up Female",
+		"Level Up Electric Cave",
+		"Level Up Moss Rock",
+		"Level Up Ice Rock",
+		"Level Up Electric Cave 2",
+	};
 };
 
-#endif // _PERSONAL_H
+#endif // _POKEMON_MODULE_H

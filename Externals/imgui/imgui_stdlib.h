@@ -21,7 +21,7 @@ namespace ImGui
     IMGUI_API void Text(const std::string& str);
 
     IMGUI_API bool ComboBox(const char* label, const std::vector<std::string>& items, int* selected);
-    IMGUI_API bool TextInputComboBox(const char* label, const std::vector<std::string>& items, int* selected);
+    IMGUI_API bool TextInputComboBox(const char* label, const std::vector<std::string>* const items, int* selected);
 
     // ImGui::InputText() with std::string
     // Because text input needs dynamic resizing, we need to setup a callback to grow the capacity

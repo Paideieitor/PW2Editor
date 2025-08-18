@@ -1,7 +1,9 @@
 #ifndef _MOVE_DATA_H
 #define _MOVE_DATA_H
 
-#include <array>
+#include "Data/Data.h"
+
+#define MOVE_NULL (int)0x80000000
 
 enum MoveField
 {
@@ -67,13 +69,19 @@ enum MoveField
 	IS_UNKNOWN_29,
 	IS_UNKNOWN_30,
 	IS_UNKNOWN_31,
-	MOVEDATA_MAX,
+	MOVE_MAX,
+};
+#define MOVE_START 0
+#define MOVE_SIZE MOVE_MAX
+
+#define MOVE_FIELD(field) (MOVE_START + field)
+
+class MoveData : public Data
+{
+public:
+
+	virtual void GenerateSections(const vector<string>& narcPaths) override;
 };
 
-typedef std::array<int, MOVEDATA_MAX> MoveData;
-
-void MoveDataReset(MoveData& moveData);
-
-#define MOVEDATA_NULL -128
-
 #endif // _MOVE_DATA_H
+
