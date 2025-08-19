@@ -189,6 +189,59 @@ void Engine::UninstallPatch()
 	system(PATH_FORMAT(command).c_str());
 }
 
+bool Engine::PW2CodeCheck()
+{
+#if _DEBUG
+	return true;
+#endif
+	string patchPath = DEPLOY_PATCH_DIR;
+	if (!PathExists(patchPath))
+		return false;
+
+	return PathExists(PathConcat(patchPath, ".git"));
+}
+
+void LaunchCommand(const string& command)
+{
+	string buildScript = "@ECHO OFF\n";
+	buildScript += command;
+	buildScript += "\nPAUSE";
+
+	FileStream fileStream;
+	LoadEmptyFileStream(fileStream);
+	FileStreamBufferWriteBack(fileStream, (u8*)buildScript.c_str(), (u32)buildScript.size());
+	SaveFileStream(fileStream, TEMP_CMD);
+	ReleaseFileStream(fileStream);
+
+	system(TEMP_CMD);
+}
+
+void Engine::DownloadPW2Code()
+{
+	string patchPath = DEPLOY_PATCH_DIR;
+
+	string command = "git clone --recursive ";
+	command += PW2CODE_LINK;
+	command += " " + PATH_FORMAT(patchPath);
+
+	LaunchCommand(command);
+}
+
+void Engine::UpdatePW2Code()
+{
+	string patchPath = DEPLOY_PATCH_DIR;
+	if (!PathExists(patchPath))
+		return;
+
+	string command = "cd ";
+	command += PATH_FORMAT(patchPath) + '\n';
+	command += "git fetch origin";
+	command += '\n';
+	command += "git reset --hard origin/main";
+
+	LaunchCommand(command);
+}
+
 void Engine::Quit(const string& msg)
 {
 	quit = true;
@@ -433,6 +486,12 @@ ReturnState Engine::RenderGUI()
 		if (ImGui::IsKeyPressed(ImGuiKey_S))
 			Save();
 
+		if (ImGui::IsKeyPressed(ImGuiKey_R))
+		{
+			Save();
+			ReloadData();
+		}
+
 		if (ImGui::IsKeyPressed(ImGuiKey_Z))
 			ReverseAction();
 
@@ -469,6 +528,16 @@ bool Engine::LoadEngine()
 			enableBuilder = true;
 			break;
 		}
+	}
+
+	if (enableBuilder)
+	{
+		string patchSettingsPath = DEPLOY_PATCH_DIR;
+		if (!PathExists(patchSettingsPath))
+			patchSettingsPath = DEV_PATCH_DIR;
+
+		patchSettingsPath = PathConcat(patchSettingsPath, "settings.h");
+		LoadKlang(patchSettings, patchSettingsPath);
 	}
 
 	const vector<u32> textFileIdexes = {
@@ -546,9 +615,11 @@ bool Engine::ClearEngine()
 
 	for (u32 idx = 0; idx < (u32)datas.size(); ++idx)
 		delete datas[idx];
+	datas.clear();
 
 	for (u32 idx = 0; idx < (u32)modules.size(); ++idx)
 		delete modules[idx];
+	modules.clear();
 
 	Log(INFO, "    Clearing success");
 	return true;
@@ -581,7 +652,6 @@ bool Engine::ReverseAction()
 
 bool Engine::ReloadData()
 {
-	Save();
 	if (!ClearEngine())
 	{
 		Quit(RELOAD_CLEAR_QUIT);
@@ -621,6 +691,12 @@ void Engine::MenuBar()
 				Save();
 			ImGui::EndDisabled();
 
+			if (ImGui::MenuItem("Save & Reload", "Ctrl+R"))
+			{
+				Save();
+				ReloadData();
+			}
+
 			if (ImGui::MenuItem("Save & Exit"))
 			{
 				Save();
@@ -651,41 +727,41 @@ void Engine::MenuBar()
 		ImGui::BeginDisabled(!enableBuilder || !PMCCheck());
 		if (ImGui::BeginMenu("Patcher"))
 		{
-			if (ImGui::MenuItem("Options"))
+			if (!PW2CodeCheck())
 			{
-				patcherOptions = !patcherOptions;
-				if (patcherOptions)
+				if (ImGui::MenuItem("Download PW2Code"))
+					DownloadPW2Code();
+			}
+			else
+			{
+
+				if (ImGui::MenuItem("Update PW2Code"))
+					UpdatePW2Code();
+
+				if (ImGui::MenuItem("Options"))
+					patcherOptions = !patcherOptions;
+
+				bool patchInstalled = PatchIsInstalled();
+
+				string buildText = "Save + Build";
+				if (patchInstalled)
+					buildText = "Save + Rebuild";
+				if (ImGui::MenuItem(buildText.c_str()))
 				{
-					string patchSettingsPath = DEPLOY_PATCH_DIR;
-					if (!PathExists(patchSettingsPath))
-						patchSettingsPath = DEV_PATCH_DIR;
-
-					patchSettingsPath = PathConcat(patchSettingsPath, "settings.h");
-					LoadKlang(patchSettings, patchSettingsPath);
+					Save();
+					BuildPatch();
+					ReloadData();
 				}
+
+				ImGui::BeginDisabled(!patchInstalled);
+				if (ImGui::MenuItem("Save + Uninstall"))
+				{
+					Save();
+					UninstallPatch();
+					ReloadData();
+				}
+				ImGui::EndDisabled();
 			}
-
-			bool patchInstalled = PatchIsInstalled();
-
-			string buildText = "Save + Build";
-			if (patchInstalled)
-				buildText = "Save + Rebuild";
-			if (ImGui::MenuItem(buildText.c_str()))
-			{
-				Save();
-				BuildPatch();
-				ReloadData();
-			}
-
-			ImGui::BeginDisabled(!patchInstalled);
-			if (ImGui::MenuItem("Save + Uninstall"))
-			{
-				Save();
-				UninstallPatch();
-				ReloadData();
-			}
-			ImGui::EndDisabled();
-
 			ImGui::EndMenu();
 		}
 		ImGui::EndDisabled();

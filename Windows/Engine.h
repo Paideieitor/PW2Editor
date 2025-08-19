@@ -62,6 +62,10 @@ public:
 	void BuildPatch();
 	void UninstallPatch();
 
+	bool PW2CodeCheck();
+	void DownloadPW2Code();
+	void UpdatePW2Code();
+
 	void Quit(const string& msg = string());
 
 	vector<string>* GetTextFile(u32 idx);
@@ -164,6 +168,8 @@ private:
 #define DEPLOY_BUILDER_DIR "Patcher"
 #define DEPLOY_PATCH_DIR "Patcher\\PW2Code"
 
+#define PW2CODE_LINK "https://github.com/Paideieitor/PW2Code"
+
 #define PATCH_BUILDER_FILE "PW2Builder.exe"
 
 #define PATCH_SETTINGS_FILE "Builder\\buildSettings.txt"
@@ -172,5 +178,11 @@ private:
 #define CONSTRUCTOR_LOAD_QUIT "Engine could not load"
 #define RELOAD_CLEAR_QUIT "Failed to clear data"
 #define RELOAD_LOAD_QUIT "Failed to load data"
+
+#ifdef _WIN32
+#define TEMP_CMD "temp.bat"
+#else
+#define TEMP_CMD "temp.sh"
+#endif
 
 #endif // _ENGINE_H
