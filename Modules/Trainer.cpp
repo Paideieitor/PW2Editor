@@ -325,21 +325,39 @@ bool Trainer::TeamMember(int trainerType, u32 slot)
 					TRAINER_INPUT_INT(TEAM_FIELD(slot, TRAINER_HP_IV), "", 31, 0);
 					TRAINER_INPUT_INT(TEAM_FIELD(slot, TRAINER_ATK_IV), "", 31, 0);
 					TRAINER_INPUT_INT(TEAM_FIELD(slot, TRAINER_DEF_IV), "", 31, 0);
-					TRAINER_INPUT_INT(TEAM_FIELD(slot, TRAINER_SPE_IV), "", 31, 0);
 					TRAINER_INPUT_INT(TEAM_FIELD(slot, TRAINER_SPA_IV), "", 31, 0);
 					TRAINER_INPUT_INT(TEAM_FIELD(slot, TRAINER_SPD_IV), "", 31, 0);
+					TRAINER_INPUT_INT(TEAM_FIELD(slot, TRAINER_SPE_IV), "", 31, 0);
 				}
 				ImGui::EndGroup();
 				ImGui::SameLine();
 				ImGui::BeginGroup();
 				{
 					ImGui::Text("EVs");
-					TRAINER_INPUT_INT(TEAM_FIELD(slot, TRAINER_HP_EV), "HP", 252, 0);
+
+					TRAINER_INPUT_INT(TEAM_FIELD(slot, TRAINER_HP_EV), "HP  ", 252, 0);
+					ImGui::SameLine();
+					ImGui::Text(GetStat(slot, BASE_HP, NATURE_STAT_HP));
+
 					TRAINER_INPUT_INT(TEAM_FIELD(slot, TRAINER_ATK_EV), "ATK", 252, 0);
+					ImGui::SameLine();
+					ImGui::Text(GetStat(slot, BASE_ATK, NATURE_STAT_ATK));
+
 					TRAINER_INPUT_INT(TEAM_FIELD(slot, TRAINER_DEF_EV), "DEF", 252, 0);
-					TRAINER_INPUT_INT(TEAM_FIELD(slot, TRAINER_SPE_EV), "SPE", 252, 0);
+					ImGui::SameLine();
+					ImGui::Text(GetStat(slot, BASE_DEF, NATURE_STAT_DEF));
+
 					TRAINER_INPUT_INT(TEAM_FIELD(slot, TRAINER_SPA_EV), "SPA", 252, 0);
+					ImGui::SameLine();
+					ImGui::Text(GetStat(slot, BASE_SPA, NATURE_STAT_SPA));
+
 					TRAINER_INPUT_INT(TEAM_FIELD(slot, TRAINER_SPD_EV), "SPD", 252, 0);
+					ImGui::SameLine();
+					ImGui::Text(GetStat(slot, BASE_SPD, NATURE_STAT_SPD));
+
+					TRAINER_INPUT_INT(TEAM_FIELD(slot, TRAINER_SPE_EV), "SPE", 252, 0);
+					ImGui::SameLine();
+					ImGui::Text(GetStat(slot, BASE_SPE, NATURE_STAT_SPE));
 				}
 				ImGui::EndGroup();
 
@@ -449,7 +467,7 @@ const u8 hpTypes[] = {
 	15,
 	16,
 };
-u32 Trainer::GetHiddenPower(u32 slot)
+int Trainer::GetHiddenPower(u32 slot)
 {
 	int hpValue = (TRAINER_GET_VALUE(TEAM_FIELD(slot, TRAINER_HP_IV)) & 1) != 0;
 	if ((TRAINER_GET_VALUE(TEAM_FIELD(slot, TRAINER_ATK_IV)) & 1) != 0)
@@ -463,7 +481,40 @@ u32 Trainer::GetHiddenPower(u32 slot)
 	if ((TRAINER_GET_VALUE(TEAM_FIELD(slot, TRAINER_SPD_IV)) & 1) != 0)
 		hpValue += 32;
 
-	u32 idx = 15 * hpValue / 63;
+	int idx = 15 * hpValue / 63;
 	for (; idx > 16; idx -= 16) {}
 	return hpTypes[idx];
+}
+
+string Trainer::GetStat(u32 slot, u32 baseStat, NatureStat stat)
+{
+	int ev = TRAINER_GET_VALUE(TEAM_FIELD(slot, TRAINER_SPE_EV));
+	int iv = TRAINER_GET_VALUE(TEAM_FIELD(slot, TRAINER_SPE_IV));
+	int level = TRAINER_GET_VALUE(TEAM_FIELD(slot, TRAINER_LEVEL));
+
+	int species = TRAINER_GET_VALUE(TEAM_FIELD(slot, TRAINER_SPECIES));
+	int form = TRAINER_GET_VALUE(TEAM_FIELD(slot, TRAINER_FORM));
+	int base = engine->GetDataValue(engine->pokemons, species, PERSONAL_FIELD(form, baseStat));
+
+	int value = ((ev / 4 + iv + 2 * base) * level) / 100 + 5;
+
+	int nature = TRAINER_GET_VALUE(TEAM_FIELD(slot, TRAINER_NATURE));
+	char boost = 0;
+	if (stat != NATURE_STAT_HP)
+	{
+		boost = natureStats[5 * nature - 1 + stat];
+		if (boost == 1)
+			value = (110 * value) / 100;
+		else if (boost == -1)
+			value = (90 * value) / 100;
+	}
+	else if (species == 292) // Shedinja
+		value = 1;
+
+	string output = '[' + to_string(value) + ']';
+	if (boost == 1)
+		output += " +";
+	else if (boost == -1)
+		output += " -";
+	return output;
 }

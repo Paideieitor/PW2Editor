@@ -109,14 +109,14 @@ ReturnState Item::RenderGUI()
 			{
 				ITEM_INPUT_INT(BOOST_ATK, "Boost Attack", 15, 0);
 				ITEM_INPUT_INT(BOOST_DEF, "Boost Defense", 15, 0);
-				ITEM_INPUT_INT(BOOST_SPE, "Boost Speed", 15, 0);
+				ITEM_INPUT_INT(BOOST_SPA, "Boost Sp.Attack", 15, 0);
 			}
 			ImGui::EndGroup();
 			ImGui::SameLine();
 			ImGui::BeginGroup();
 			{
-				ITEM_INPUT_INT(BOOST_SPA, "Boost Sp.Attack", 15, 0);
-				ITEM_INPUT_INT(BOOST_SPD, "Boost Sp.Defense", 15, 0);
+				ITEM_INPUT_INT(BOOST_SPD, "Boost Sp.Defense", 15, 0); 
+				ITEM_INPUT_INT(BOOST_SPE, "Boost Speed", 15, 0);
 				ITEM_INPUT_INT(BOOST_ACC, "Boost Accuracy", 15, 0);
 			}
 			ImGui::EndGroup();
@@ -140,9 +140,9 @@ ReturnState Item::RenderGUI()
 			ImGui::SameLine();
 			ImGui::BeginGroup();
 			{
-				ITEM_INPUT_INT(ITEM_EV_SPE, "Speed EVs", 255, 0);
 				ITEM_INPUT_INT(ITEM_EV_SPA, "Sp.Attack EVs", 255, 0);
 				ITEM_INPUT_INT(ITEM_EV_SPD, "Sp.Defense EVs", 255, 0);
+				ITEM_INPUT_INT(ITEM_EV_SPE, "Speed EVs", 255, 0);
 			}
 			ImGui::EndGroup();
 
@@ -176,9 +176,9 @@ ReturnState Item::RenderGUI()
 		ImGui::SameLine();
 		ImGui::BeginGroup();
 		{
-			ITEM_CHECK_BOX(EV_ADD_SPE, "Add Speed EVs");
 			ITEM_CHECK_BOX(EV_ADD_SPA, "Add Sp.Attack EVs");
 			ITEM_CHECK_BOX(EV_ADD_SPD, "Add Sp.Defense EVs");
+			ITEM_CHECK_BOX(EV_ADD_SPE, "Add Speed EVs");
 		}
 		ImGui::EndGroup();
 		ITEM_CHECK_BOX(EV_ADD_ABOVE_100, "Add EVs above 100");

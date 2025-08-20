@@ -149,9 +149,9 @@ void Pokemon::Personal(u32 form)
 			ImGui::EndGroup();
 			ImGui::SameLine();
 			ImGui::BeginGroup();
-			POKEMON_INPUT_INT(PERSONAL_FIELD(form, BASE_SPE), "Speed", 255, 0);
 			POKEMON_INPUT_INT(PERSONAL_FIELD(form, BASE_SPA), "Sp.Attack", 255, 0);
 			POKEMON_INPUT_INT(PERSONAL_FIELD(form, BASE_SPD), "Sp.Defense", 255, 0);
+			POKEMON_INPUT_INT(PERSONAL_FIELD(form, BASE_SPE), "Speed", 255, 0);
 			ImGui::EndGroup();
 		}
 		ImGui::EndGroup();
@@ -175,9 +175,9 @@ void Pokemon::Personal(u32 form)
 			ImGui::EndGroup();
 			ImGui::SameLine();
 			ImGui::BeginGroup();
-			POKEMON_INPUT_INT(PERSONAL_FIELD(form, EV_SPE), "Speed", 3, 0);
 			POKEMON_INPUT_INT(PERSONAL_FIELD(form, EV_SPA), "Sp.Attack", 3, 0);
 			POKEMON_INPUT_INT(PERSONAL_FIELD(form, EV_SPD), "Sp.Defense", 3, 0);
+			POKEMON_INPUT_INT(PERSONAL_FIELD(form, EV_SPE), "Speed", 3, 0);
 			ImGui::EndGroup();
 		}
 		ImGui::EndGroup();

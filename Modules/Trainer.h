@@ -14,6 +14,17 @@ public:
 
 private:
 
+	enum NatureStat
+	{
+		NATURE_STAT_HP,
+		NATURE_STAT_ATK,
+		NATURE_STAT_DEF,
+		NATURE_STAT_SPA,
+		NATURE_STAT_SPD,
+		NATURE_STAT_SPE,
+		NATURE_STAT_MAX,
+	};
+
 	bool TeamMember(int trainerType, u32 slot);
 
 	int TeamCount();
@@ -27,7 +38,8 @@ private:
 	bool Remove(u32 slot);
 	bool Insert(u32 slot);
 
-	u32 GetHiddenPower(u32 slot);
+	int GetHiddenPower(u32 slot);
+	string GetStat(u32 slot, u32 baseStat, NatureStat stat);
 
 	const vector<string>* const trainerClasses;
 	const vector<string>* const pokemons;
@@ -69,6 +81,15 @@ private:
 		"Freeze",
 		"Burn",
 		"Poison",
+	};
+
+	const char natureStats[125] = {
+		0, 0, 0, 0, 0, 1, -1, 0, 0, 0, 1, 0, 0, 0, -1, 1, 0, -1, 0, 0, 1, 0, 0, -1,
+		0, -1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, -1, 0, 1, -1, 0, 0, 0, 1, 0,
+		-1, 0, -1, 0, 0, 0, 1, 0, -1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, -1, 0, 1, 0,
+		0, 0, -1, 1, -1, 0, 1, 0, 0, 0, -1, 1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0,
+		0, 0, 0, 1, -1, 0, -1, 0, 0, 1, 0, 0, -1, 0, 1, 0, 0, 0, 0, 1, -1, 0, 0,
+		-1, 1, 0, 0, 0, 0, 0, 0
 	};
 };
 

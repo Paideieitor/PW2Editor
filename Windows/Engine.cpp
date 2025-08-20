@@ -101,92 +101,16 @@ void Engine::Save()
 
 bool Engine::PMCCheck()
 {
+	if (!enableBuilder)
+		return false;
 	return PathExists(PathConcat(project->ctrMapProjectDir, PMC_CHECK_PATH));
 }
 
 bool Engine::PatchIsInstalled()
 {
+	if (!PMCCheck())
+		return false;
 	return PathExists(PathConcat(project->path, PATCH_INSTALLED_FILE));
-}
-
-void Engine::InstallPatch(string settingsPath)
-{
-	string toolsDir = DEPLOY_TOOLS_DIR;
-	if (!PathExists(toolsDir))
-		toolsDir = DEV_TOOLS_DIR;
-
-	string buildSettings = "SET PROJECT_DIR=";
-	buildSettings += project->ctrMapProjectDir + PATH_SEPARATOR;
-	buildSettings += '\n';
-
-	buildSettings += "SET CTRMAP_DIR=";
-	buildSettings += toolsDir + PATH_SEPARATOR;
-	buildSettings += '\n';
-
-	buildSettings += "SET ARM_NONE_EABI_DIR=";
-	buildSettings += PathConcat(toolsDir, "Arm-None-Eabi\\bin\\");
-	buildSettings += '\n';
-
-	buildSettings += "SET JAVA_DIR=";
-
-	FileStream file;
-	LoadEmptyFileStream(file);
-
-	FileStreamBufferWriteBack(file, (u8*)buildSettings.c_str(), (u32)buildSettings.size());
-
-	SaveFileStream(file, settingsPath);
-}
-
-string GetBuilderPath()
-{
-	string builderPath = DEPLOY_BUILDER_DIR;
-	if (PathExists(builderPath))
-		return builderPath;
-
-	builderPath = DEV_BUILDER_DIR;
-#ifdef _WIN64
-	builderPath = PathConcat(builderPath, "x64");
-#else
-	builderPath = ConcatPath(builderPath, "x86");
-#endif
-	builderPath = PathConcat(builderPath, "Release");
-	return builderPath;
-}
-
-void Engine::BuildPatch()
-{
-	string builderPath = GetBuilderPath();
-	string patchPath = DEPLOY_PATCH_DIR;
-	if (!PathExists(patchPath))
-		patchPath = DEV_PATCH_DIR;
-
-	string command = PATH_FORMAT(PathConcat(builderPath, PATCH_BUILDER_FILE)) + " ";
-	command += "-rebuild ";
-	command += PATH_FORMAT(patchPath) + " ";
-	command += "-whitelist-all ";
-	command += "-custom-build ";
-	command += PATH_FORMAT(project->path) + " ";
-	command += "-pause";
-
-	system(PATH_FORMAT(command).c_str());
-}
-
-void Engine::UninstallPatch()
-{
-	string builderPath = GetBuilderPath();
-	string patchPath = DEPLOY_PATCH_DIR;
-	if (!PathExists(patchPath))
-		patchPath = DEV_PATCH_DIR;
-
-	string command = PATH_FORMAT(PathConcat(builderPath, "PW2Builder.exe")) + " ";
-	command += "-uninstall ";
-	command += PATH_FORMAT(patchPath) + " ";
-	command += "-custom-build ";
-	command += PATH_FORMAT(project->path) + " ";
-	command += "-keep-settings ";
-	command += "-pause";
-
-	system(PATH_FORMAT(command).c_str());
 }
 
 bool Engine::PW2CodeCheck()
@@ -199,47 +123,6 @@ bool Engine::PW2CodeCheck()
 		return false;
 
 	return PathExists(PathConcat(patchPath, ".git"));
-}
-
-void LaunchCommand(const string& command)
-{
-	string buildScript = "@ECHO OFF\n";
-	buildScript += command;
-	buildScript += "\nPAUSE";
-
-	FileStream fileStream;
-	LoadEmptyFileStream(fileStream);
-	FileStreamBufferWriteBack(fileStream, (u8*)buildScript.c_str(), (u32)buildScript.size());
-	SaveFileStream(fileStream, TEMP_CMD);
-	ReleaseFileStream(fileStream);
-
-	system(TEMP_CMD);
-}
-
-void Engine::DownloadPW2Code()
-{
-	string patchPath = DEPLOY_PATCH_DIR;
-
-	string command = "git clone --recursive ";
-	command += PW2CODE_LINK;
-	command += " " + PATH_FORMAT(patchPath);
-
-	LaunchCommand(command);
-}
-
-void Engine::UpdatePW2Code()
-{
-	string patchPath = DEPLOY_PATCH_DIR;
-	if (!PathExists(patchPath))
-		return;
-
-	string command = "cd ";
-	command += PATH_FORMAT(patchPath) + '\n';
-	command += "git fetch origin";
-	command += '\n';
-	command += "git reset --hard origin/main";
-
-	LaunchCommand(command);
 }
 
 void Engine::Quit(const string& msg)
@@ -530,14 +413,9 @@ bool Engine::LoadEngine()
 		}
 	}
 
-	if (enableBuilder)
+	if (PW2CodeCheck())
 	{
-		string patchSettingsPath = DEPLOY_PATCH_DIR;
-		if (!PathExists(patchSettingsPath))
-			patchSettingsPath = DEV_PATCH_DIR;
-
-		patchSettingsPath = PathConcat(patchSettingsPath, "settings.h");
-		LoadKlang(patchSettings, patchSettingsPath);
+		LoadPatchSettings();
 	}
 
 	const vector<u32> textFileIdexes = {
@@ -663,6 +541,141 @@ bool Engine::ReloadData()
 		return false;
 	}
 	return true;
+}
+
+void Engine::LoadPatchSettings()
+{
+	string patchSettingsPath = DEPLOY_PATCH_DIR;
+	if (!PathExists(patchSettingsPath))
+		patchSettingsPath = DEV_PATCH_DIR;
+
+	patchSettingsPath = PathConcat(patchSettingsPath, "settings.h");
+	LoadKlang(patchSettings, patchSettingsPath);
+}
+
+void Engine::InstallPatch(string settingsPath)
+{
+	string toolsDir = DEPLOY_TOOLS_DIR;
+	if (!PathExists(toolsDir))
+		toolsDir = DEV_TOOLS_DIR;
+
+	string buildSettings = "SET PROJECT_DIR=";
+	buildSettings += project->ctrMapProjectDir + PATH_SEPARATOR;
+	buildSettings += '\n';
+
+	buildSettings += "SET CTRMAP_DIR=";
+	buildSettings += toolsDir + PATH_SEPARATOR;
+	buildSettings += '\n';
+
+	buildSettings += "SET ARM_NONE_EABI_DIR=";
+	buildSettings += PathConcat(toolsDir, "Arm-None-Eabi\\bin\\");
+	buildSettings += '\n';
+
+	buildSettings += "SET JAVA_DIR=";
+
+	FileStream file;
+	LoadEmptyFileStream(file);
+
+	FileStreamBufferWriteBack(file, (u8*)buildSettings.c_str(), (u32)buildSettings.size());
+
+	SaveFileStream(file, settingsPath);
+}
+
+string GetBuilderPath()
+{
+	string builderPath = DEPLOY_BUILDER_DIR;
+	if (PathExists(builderPath))
+		return builderPath;
+
+	builderPath = DEV_BUILDER_DIR;
+#ifdef _WIN64
+	builderPath = PathConcat(builderPath, "x64");
+#else
+	builderPath = ConcatPath(builderPath, "x86");
+#endif
+	builderPath = PathConcat(builderPath, "Release");
+	return builderPath;
+}
+
+void Engine::BuildPatch()
+{
+	string builderPath = GetBuilderPath();
+	string patchPath = DEPLOY_PATCH_DIR;
+	if (!PathExists(patchPath))
+		patchPath = DEV_PATCH_DIR;
+
+	string command = PATH_FORMAT(PathConcat(builderPath, PATCH_BUILDER_FILE)) + " ";
+	command += "-rebuild ";
+	command += PATH_FORMAT(patchPath) + " ";
+	command += "-whitelist-all ";
+	command += "-custom-build ";
+	command += PATH_FORMAT(project->path) + " ";
+	command += "-pause";
+
+	system(PATH_FORMAT(command).c_str());
+}
+
+void Engine::UninstallPatch()
+{
+	string builderPath = GetBuilderPath();
+	string patchPath = DEPLOY_PATCH_DIR;
+	if (!PathExists(patchPath))
+		patchPath = DEV_PATCH_DIR;
+
+	string command = PATH_FORMAT(PathConcat(builderPath, "PW2Builder.exe")) + " ";
+	command += "-uninstall ";
+	command += PATH_FORMAT(patchPath) + " ";
+	command += "-custom-build ";
+	command += PATH_FORMAT(project->path) + " ";
+	command += "-keep-settings ";
+	command += "-pause";
+
+	system(PATH_FORMAT(command).c_str());
+}
+
+void LaunchCommand(const string& command)
+{
+	string buildScript = "@ECHO OFF\n";
+	buildScript += command;
+	buildScript += "\nPAUSE";
+
+	FileStream fileStream;
+	LoadEmptyFileStream(fileStream);
+	FileStreamBufferWriteBack(fileStream, (u8*)buildScript.c_str(), (u32)buildScript.size());
+	SaveFileStream(fileStream, TEMP_CMD);
+	ReleaseFileStream(fileStream);
+
+	system(TEMP_CMD);
+}
+
+void Engine::DownloadPW2Code()
+{
+	string patchPath = DEPLOY_PATCH_DIR;
+
+	string command = "git clone --recursive ";
+	command += PW2CODE_LINK;
+	command += " " + PATH_FORMAT(patchPath);
+
+	LaunchCommand(command);
+
+	LoadPatchSettings();
+}
+
+void Engine::UpdatePW2Code()
+{
+	string patchPath = DEPLOY_PATCH_DIR;
+	if (!PathExists(patchPath))
+		return;
+
+	string command = "cd ";
+	command += PATH_FORMAT(patchPath) + '\n';
+	command += "git fetch origin";
+	command += '\n';
+	command += "git reset --hard origin/main";
+
+	LaunchCommand(command);
+
+	LoadPatchSettings();
 }
 
 void PatchSetting(KlangVar& var, bool isChild)

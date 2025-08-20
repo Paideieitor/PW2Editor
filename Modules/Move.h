@@ -93,14 +93,14 @@ private:
 		"All",
 	};
 	const vector<string> stats = {
-	"Null",
-	"Attack",
-	"Defense",
-	"Sp.Attack",
-	"Sp.Defense",
-	"Speed",
-	"Accuracy",
-	"Evasion",
+		"Null",
+		"Attack",
+		"Defense",
+		"Sp.Attack",
+		"Sp.Defense",
+		"Speed",
+		"Accuracy",
+		"Evasion",
 	};
 };
 

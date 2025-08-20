@@ -58,13 +58,8 @@ public:
 
 	bool PMCCheck();
 	bool PatchIsInstalled();
-	void InstallPatch(string settingsPath);
-	void BuildPatch();
-	void UninstallPatch();
 
 	bool PW2CodeCheck();
-	void DownloadPW2Code();
-	void UpdatePW2Code();
 
 	void Quit(const string& msg = string());
 
@@ -134,6 +129,14 @@ private:
 	bool SaveData();
 	bool ReverseAction();
 	bool ReloadData();
+
+	void LoadPatchSettings();
+	void InstallPatch(string settingsPath);
+	void BuildPatch();
+	void UninstallPatch();
+
+	void DownloadPW2Code();
+	void UpdatePW2Code();
 
 	void MenuBar();
 
