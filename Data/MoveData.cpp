@@ -29,7 +29,7 @@ bool LoadMove(vector<int>& data, vector<u32>& concatIndices, const FileStream& f
 	data.at(BEHAVIOR) = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
 
 	data.at(RECOIL) = (int)FileStreamReadUpdate<char>(fileStream, currentByte);
-	data.at(HEAL) = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
+	data.at(HEAL) = (int)FileStreamReadUpdate<char>(fileStream, currentByte);
 	data.at(TARGET) = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
 
 	for (u32 statChange = 0; statChange < 3; ++statChange)
@@ -70,7 +70,7 @@ bool SaveMove(const vector<int> data, FileStream& fileStream)
 	FileStreamPutBack<u8>(fileStream, (u8)data.at(FLINCH_RATE));
 	FileStreamPutBack<u16>(fileStream, (u16)data.at(BEHAVIOR));
 	FileStreamPutBack<char>(fileStream, (char)data.at(RECOIL));
-	FileStreamPutBack<u8>(fileStream, (u8)data.at(HEAL));
+	FileStreamPutBack<char>(fileStream, (char)data.at(HEAL));
 	FileStreamPutBack<u8>(fileStream, (u8)data.at(TARGET));
 
 	for (u32 statChange = 0; statChange < 3; ++statChange)

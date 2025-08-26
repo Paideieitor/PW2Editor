@@ -36,7 +36,7 @@ ReturnState Move::RenderGUI()
 			MOVE_INPUT_INT(FLINCH_RATE, "Flinch Rate", 100, 0);
 
 			MOVE_INPUT_INT(RECOIL, "Recoil/Drain", 100, -100);
-			MOVE_INPUT_INT(HEAL, "Heal", 255, 0);
+			MOVE_INPUT_INT(HEAL, "Heal", 100, -100);
 			MOVE_COMBO_BOX(TARGET, "Target", &moveTarget);
 		}
 		ImGui::EndGroup();
