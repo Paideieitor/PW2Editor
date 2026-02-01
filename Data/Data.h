@@ -15,6 +15,9 @@
 
 class Data
 {
+public:
+    virtual ~Data() {}
+
 private:
 
 	// Engine Interface

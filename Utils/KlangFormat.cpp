@@ -1,5 +1,7 @@
 #include "System.h"
 
+#include <cstring>
+
 #include "Utils/KlangFormat.h"
 #include "Utils/FileUtils.h"
 
@@ -47,8 +49,7 @@ bool KlangVar::SetValue(int value)
 	if (this->value == value)
 		return false;
 
-	FILE* klangFile = nullptr;
-	fopen_s(&klangFile, this->path.c_str(), "r");
+	FILE* klangFile = fopen(this->path.c_str(), "r");
 	if (!klangFile)
 	{
 		Log(WARNING, "Couldn't open KLANG file to edit (%s)", this->path.c_str());
@@ -95,8 +96,7 @@ bool KlangVar::SetValue(int value)
 
 bool Klang::Load(Klang& klang, const string& path)
 {
-	FILE* klangFile = nullptr;
-	fopen_s(&klangFile, path.c_str(), "r");
+	FILE* klangFile = fopen(path.c_str(), "r");
 	if (!klangFile)
 	{
 		Log(WARNING, "Couldn't open KLANG file to load (%s)", path.c_str());

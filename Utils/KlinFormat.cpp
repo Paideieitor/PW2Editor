@@ -1,4 +1,5 @@
 #include <map>
+#include <cstring>
 
 #include "System.h"
 
@@ -10,8 +11,7 @@
 
 void LoadKlin(KlinHandler& handler, const string& path)
 {
-	FILE* klinFile = nullptr;
-	fopen_s(&klinFile, path.c_str(), "r");
+	FILE* klinFile = fopen(path.c_str(), "r");
 	if (!klinFile)
 	{
 		Log(WARNING, "Couldn't open KLIN file to load (%s)", path);
@@ -50,7 +50,7 @@ void LoadKlin(KlinHandler& handler, const string& path)
 
 void ReleaseKlin(KlinHandler& handler)
 {
-	delete handler;
+	delete (map<KlinValue, string>*)handler;
 	handler = nullptr;
 }
 
@@ -62,8 +62,7 @@ void SaveKlin(KlinHandler& handler, const string& path, bool release)
 		return;
 	}
 
-	FILE* klinFile = nullptr;
-	fopen_s(&klinFile, path.c_str(), "w");
+	FILE* klinFile = fopen(path.c_str(), "w");
 	if (!klinFile)
 	{
 		Log(WARNING, "Couldn't open KLIN file to save (%s)", path);

@@ -6,8 +6,13 @@
 
 #include "Globals.h"
 
-#define PATH_SEPARATOR '\\'
-#define NOT_PATH_SEPARATOR '/'
+#ifdef _WIN32
+    #define PATH_SEPARATOR '\\'
+    #define NOT_PATH_SEPARATOR '/'
+#else
+    #define PATH_SEPARATOR '/'
+    #define NOT_PATH_SEPARATOR '\\'
+#endif
 
 #define MAKE_FILE_PATH(path, fileID) path + PATH_SEPARATOR + to_string(fileID)
 

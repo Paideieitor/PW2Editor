@@ -22,14 +22,15 @@ class Window
 {
 public:
 	Window();
-	~Window();
+	virtual ~Window();
 
 	ReturnState Init(int width, int height, const string& name, const string& font, float fontSize);
 	ReturnState Update();
 
 protected:
-
 	virtual ReturnState RenderGUI() = 0;
+
+    void StartExplorer(const string& task, bool onlyFolders = true, const string& fileExt = string());
 
 	int width; 
 	int height; 
@@ -40,9 +41,16 @@ protected:
 	string font;
 	float fontSize;
 
-private:
+    string explorerPath;
 
-	void Release();
+private:
+    void Release();
+
+    void RenderExplorer();
+
+    string exploreTask;
+    bool onlyFolders;
+    string fileExt;
 };
 
 #endif // _WINDOW_H

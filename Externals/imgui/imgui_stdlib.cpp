@@ -19,7 +19,7 @@
 
 void ImGui::Text(const std::string& str)
 {
-    ImGui::Text(str.c_str());
+    ImGui::Text("%s", str.c_str());
 }
 
 bool ImGui::ComboBox(const char* label, const std::vector<std::string>& items, int* selected)
@@ -27,9 +27,9 @@ bool ImGui::ComboBox(const char* label, const std::vector<std::string>& items, i
     int startSelected = *selected;
     if (ImGui::BeginCombo(label, items[*selected].c_str()))
     {
-        for (int n = 0; n < items.size(); n++)
+        for (size_t n = 0; n < items.size(); ++n)
         {
-            if (ImGui::Selectable((items[n] + "##" + std::to_string(n)).c_str(), *selected == n))
+            if (ImGui::Selectable((items[n] + "##" + std::to_string(n)).c_str(), *selected == (int)n))
                 *selected = n;
         }
         ImGui::EndCombo();
@@ -52,10 +52,10 @@ bool ImGui::TextInputComboBox(const char* label, const std::vector<std::string>*
         ImGui::SetNextItemShortcut(ImGuiMod_Ctrl | ImGuiKey_F);
         filter.Draw("##Filter", -FLT_MIN);
 
-        for (int n = 0; n < items->size(); n++)
+        for (size_t n = 0; n < items->size(); ++n)
         {
             if (filter.PassFilter(items->at(n).c_str()))
-                if (ImGui::Selectable((items->at(n) + "##" + std::to_string(n)).c_str(), *selected == n))
+                if (ImGui::Selectable((items->at(n) + "##" + std::to_string(n)).c_str(), *selected == (int)n))
                     *selected = n;
 
         }

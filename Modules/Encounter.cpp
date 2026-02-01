@@ -51,7 +51,7 @@ ReturnState Encounter::RenderGUI()
 			if (HasSeasons(encounterIdx))
 			{
 				seasonIdx = GetProjectSeason(*engine->project);
-				if (seasonIdx < 0 || seasonIdx >= SEASON_MAX)
+				if (seasonIdx >= SEASON_MAX)
 				{
 					seasonIdx = 0;
 					SetProjectSeason(*engine->project, 0);
@@ -102,11 +102,11 @@ int Encounter::Zones(u32 location)
 	u32 zoneCount = engine->GetConcatDataCount(engine->zones, 0);
 	if (ImGui::BeginListBox("##ZoneList", ImVec2(ImGui::GetWindowWidth() - 15.0f, ImGui::GetWindowHeight() * 0.90f)))
 	{
-		for (u32 zoneIdx = 0; zoneIdx < (int)zoneCount; ++zoneIdx)
+		for (u32 zoneIdx = 0; zoneIdx < zoneCount; ++zoneIdx)
 		{
 			int locationIdx = ZONE_GET_VALUE(zoneIdx, LOCATION_NAME_IDX);
 			locationIdx = ZONE_LOCATION_NAME_IDX(locationIdx);
-			if (location != locationIdx)
+			if ((int)location != locationIdx)
 				continue;
 
 			string zoneName = locations->at(location);

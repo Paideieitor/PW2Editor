@@ -60,7 +60,7 @@ ReturnState Pokemon::RenderGUI()
 	ImGui::Begin(u8"Pokémon");
 
 	u32 formCount = engine->GetConcatDataCount(engine->pokemons, currentPokemon);
-	if (formCount < 0)
+	if (formCount == 0)
 	{
 		ImGui::Text("No Data");
 	}
@@ -422,6 +422,8 @@ void Pokemon::Evolution(u32 form)
 
 void Pokemon::Child(u32 form)
 {
+    UNUSED(form);
+
 	ImGui::BeginGroup();
 	ImGui::Text("Child");
 	POKEMON_COMBO_BOX(CHILD_FIELD(0), "", pokemons);

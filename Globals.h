@@ -1,6 +1,8 @@
 #ifndef _GLOBALS_H
 #define _GLOBALS_H
 
+#include <stdint.h>
+
 using namespace std;
 
 #define WIZARD_NAME "PW2Editor Wizard"
@@ -17,7 +19,11 @@ using namespace std;
 #define SETTINGS_NAME "settings"
 	#define DEFAULT_WINDOW_WIDTH 1440u
 	#define DEFAULT_WINDOW_HEIGHT 810u
+#ifdef _WIN32
 	#define DEFAULT_FONT "Fonts\\default.ttf"
+#else
+    #define DEFAULT_FONT "Fonts/default.ttf"
+#endif
 	#define DEFAULT_FONT_SIZE 15u
 	#define DEFAULT_LEARNSET_SIZE 26u
 	#define DEFAULT_EVOLUTION_SIZE 7u
@@ -42,16 +48,27 @@ using namespace std;
 
 #define CTRMAP_FILE_EXTENSION "cmproj"
 #define CTRMAP_VFSBASE "VFSBase"
-#define CTRMAP_FILESYSTEM_DIR "vfs\\data\\a"
-#define ROM_FILESYSTEM_DIR "data\\a"
+#ifdef _WIN32
+    #define CTRMAP_FILESYSTEM_DIR "vfs\\data\\a"
+    #define ROM_FILESYSTEM_DIR "data\\a"
+#else
+    #define CTRMAP_FILESYSTEM_DIR "vfs/data/a"
+    #define ROM_FILESYSTEM_DIR "data/a"
+#endif
 #define ROM_HEADER_NAME "header.bin"
 
+#define UNUSED(x) (void)(x)
 #define ARRAY_COUNT(arr) sizeof(arr) / sizeof(arr[0])
 
-typedef unsigned char u8;
-typedef unsigned short u16;
-typedef unsigned int u32;
-typedef unsigned long long u64;
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+
+typedef int8_t s8;
+typedef int16_t s16;
+typedef int32_t s32;
+typedef int64_t s64;
 
 enum ReturnState : u8
 {

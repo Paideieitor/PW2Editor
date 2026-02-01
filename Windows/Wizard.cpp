@@ -1,7 +1,5 @@
 #include <algorithm>
 
-#include "Externals/nativefiledialog/nfd.h"
-
 #include "Utils/FileUtils.h"
 #include "Utils/StringUtils.h"
 #include "Utils/KlinFormat.h"
@@ -20,7 +18,7 @@ Wizard::~Wizard()
 
 Project Wizard::GetProject() const
 {
-	if (selectedIdx < 0 || selectedIdx >= projectList.size())
+	if (selectedIdx < 0 || selectedIdx >= (int)projectList.size())
 		return Project();
 	return projectList[selectedIdx];
 }
@@ -32,6 +30,23 @@ ReturnState Wizard::RenderGUI()
 		flags |= ImGuiWindowFlags_NoInputs;
 	ImGui::Begin("Project Selection", nullptr, flags);
 
+    if (!explorerPath.empty())
+    {
+        Log(INFO, "Wizard Loading Project");
+        switch (CreateProject(explorerPath))
+        {
+            case OK:
+                selectedIdx = 0;
+                break;
+            case STOP:
+                break;
+            default:
+                return ERROR;
+        }
+
+        explorerPath = string();
+    }
+
 	ImGui::Text("Selected Project:");
 	if (projectList.size())
 		ImGui::Text(projectList.at(selectedIdx).name);
@@ -42,18 +57,8 @@ ReturnState Wizard::RenderGUI()
 
 	if (ImGui::Button("Load Project"))
 	{
-		Log(INFO, "Wizard Loading Project");
-		switch (CreateProject())
-		{
-		case OK:
-			selectedIdx = 0;
-			break;
-		case STOP:
-			break;
-		case ERROR:
-			return ERROR;
-		}
-	}
+        StartExplorer("Select CTRMap project folder", false, "cmproj");
+    }
 
 	ImGui::SameLine();
 
@@ -99,7 +104,7 @@ ReturnState Wizard::RenderGUI()
 			projectList.erase(projectList.begin() + selectedIdx);
 			if (!projectList.size())
 				selectedIdx = 0;
-			else if (selectedIdx >= projectList.size())
+			else if (selectedIdx >= (int)projectList.size())
 				selectedIdx = (int)projectList.size() - 1;
 
 			UpdateProjectListOrderDelete(selectedIdx);
@@ -145,8 +150,7 @@ vector<string> Wizard::GetProjectPaths(const string& path)
 {
 	vector<string> projectPaths;
 
-	FILE* file;
-	fopen_s(&file, path.c_str(), "r");
+	FILE* file = fopen(path.c_str(), "r");
 	if (file)
 	{
 		char line[1024];
@@ -167,8 +171,7 @@ vector<string> Wizard::GetProjectPaths(const string& path)
 
 void Wizard::SetProjectPaths(const string& path)
 {
-	FILE* file;
-	fopen_s(&file, path.c_str(), "w");
+	FILE* file = fopen(path.c_str(), "w");
 	if (file)
 	{
 		for (u32 idx = 0; idx < (u32)projectList.size(); ++idx)
@@ -197,7 +200,7 @@ void Wizard::LoadProjectList()
 		case OK:
 			projectList.push_back(project);
 			break;
-		case ERROR:
+		default:
 			folderList.erase(folderList.begin() + idx);
 			--idx;
 			break;
@@ -268,21 +271,9 @@ void Wizard::UpdateProjectListOrderDelete(u32 deletedIdx)
 	SortProjectListOrder();
 }
 
-ReturnState Wizard::CreateProject()
+ReturnState Wizard::CreateProject(const string& path)
 {
-	char* outPath = NULL;
-	nfdresult_t result = NFD_OpenDialog(CTRMAP_FILE_EXTENSION, NULL, &outPath);
-
-	switch (result)
-	{
-	case NFD_ERROR:
-		Log(CRITICAL, "%s", NFD_GetError());
-		return ERROR;
-	case NFD_OKAY:
-	{
-		string path = outPath;
-		free(outPath);
-		NormalizePathSeparator(path);
+    if (!path.empty()) {
 
 		Project project;
 		project.order = 0;
@@ -300,8 +291,7 @@ ReturnState Wizard::CreateProject()
 			}
 		}
 
-		FILE* ctrProjectFile = nullptr;
-		fopen_s(&ctrProjectFile, path.c_str(), "r");
+		FILE* ctrProjectFile = fopen(path.c_str(), "r");
 		if (!ctrProjectFile)
 		{
 			Log(WARNING, "Could not open CTRMap project file (%s)", path.c_str());
@@ -316,8 +306,16 @@ ReturnState Wizard::CreateProject()
 			bool isBaseLine = (bool)lineStr.find(CTRMAP_VFSBASE);
 			if (isBaseLine == 0)
 			{
-				project.romDir = lineStr.substr(lineStr.find_first_of('\"') + 1);
-				project.romDir = project.romDir.substr(0, project.romDir.length() - 2);
+                size_t romDirStart = lineStr.find_first_of('\"');
+                size_t endLen = 2;
+                if (romDirStart == string::npos)
+                {
+                    romDirStart = lineStr.find_first_of(' ');
+                    endLen = 1;
+                }
+                project.romDir = lineStr.substr(romDirStart + 1);
+				project.romDir = project.romDir.substr(0, project.romDir.length() - endLen);
+
 				NormalizePathSeparator(project.romDir);
 
 				if (!PathExists(project.romDir))
@@ -332,9 +330,8 @@ ReturnState Wizard::CreateProject()
 		}
 		fclose(ctrProjectFile);
 
-		FILE* headerFile = nullptr;
 		string headerPath = PathConcat(project.romDir, ROM_HEADER_NAME);
-		fopen_s(&headerFile, headerPath.c_str(), "rb");
+        FILE* headerFile = fopen(headerPath.c_str(), "rb");
 		if (!headerFile)
 		{
 			Log(WARNING, "Could not open ROM header file (%s)", headerPath.c_str());
@@ -342,7 +339,7 @@ ReturnState Wizard::CreateProject()
 		}
 
 		char headerData[16];
-		if (fread_s(headerData, 16, sizeof(char), 16, headerFile) != 16)
+		if (fread(headerData, sizeof(char), 16, headerFile) != 16)
 		{
 			Log(WARNING, "Could not read ROM header data (%s)", headerPath.c_str());
 			fclose(headerFile);
@@ -402,7 +399,7 @@ ReturnState Wizard::CreateProject()
 
 		return OK;
 	}
-	case NFD_CANCEL:
+    else {
 		return STOP;
 	}
 

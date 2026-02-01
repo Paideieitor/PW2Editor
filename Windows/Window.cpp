@@ -1,5 +1,7 @@
 #include "Windows/Window.h"
 
+#include "Utils/FileUtils.h"
+
 Window::Window()
 	: width(0), height(0), name(string()), window(nullptr), font(string()), fontSize(0.0f)
 {
@@ -17,16 +19,16 @@ ReturnState Window::Init(int width, int height, const string& name, const string
 	if (window)
 		Release();
 
-	// Initialize GLFW
-	glfwInit();
+    // Initialize GLFW
+    glfwInit();
 
-	// Tell GLFW what version of OpenGL we are using 
-	// In this case we are using OpenGL 3.3
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	// Tell GLFW we are using the CORE profile
-	// So that means we only have the modern functions
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    // Tell GLFW what version of OpenGL we are using 
+    // In this case we are using OpenGL 3.3
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    // Tell GLFW we are using the CORE profile
+    // So that means we only have the modern functions
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	// Create a GLFWwindow object
 	window = glfwCreateWindow(width, height, name.c_str(), NULL, NULL);
@@ -37,6 +39,7 @@ ReturnState Window::Init(int width, int height, const string& name, const string
 		glfwTerminate();
 		return ERROR;
 	}
+
 	// Introduce the window into the current context
 	glfwMakeContextCurrent(window);
 
@@ -47,11 +50,11 @@ ReturnState Window::Init(int width, int height, const string& name, const string
 
 	// Initialize ImGUI
 	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
+    ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+	// io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
 	// Setup Dear ImGui style
 	ImGui::StyleColorsClassic();
@@ -88,7 +91,15 @@ ReturnState Window::Update()
 	glfwGetWindowSize(window, &width, &height);
 
 	if (glfwWindowShouldClose(window))
-		return EXIT;
+    {
+        if (exploreTask.empty())
+        {
+            return EXIT;
+        }
+        glfwSetWindowShouldClose(window, 0);
+        exploreTask = string();
+        explorerPath = string();
+    }
 
 	// Poll and handle events (inputs, window resize, etc.)
 	// You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
@@ -109,7 +120,15 @@ ReturnState Window::Update()
 
 	ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
 
-	ReturnState output = RenderGUI();
+    ReturnState output = OK;
+    if (!exploreTask.empty())
+    {
+        RenderExplorer();
+    }
+    else
+    {
+        output = RenderGUI();
+    }
 
 	// Rendering
 	ImGui::Render();
@@ -138,20 +157,104 @@ ReturnState Window::Update()
 
 void Window::Release()
 {
-	// Cleanup
-	ImGui_ImplOpenGL3_Shutdown();
-	ImGui_ImplGlfw_Shutdown();
-	ImGui::DestroyContext();
+    // Cleanup
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 
-	glfwDestroyWindow(window);
-	glfwTerminate();
+    glfwDestroyWindow(window);
+    glfwTerminate();
 
-	width = 0;
-	height = 0;
-	name = string();
+    width = 0;
+    height = 0;
+    name = string();
 
 	window = nullptr;
 
 	font = string();
 	fontSize = 0.0f;
 }
+
+void Window::StartExplorer(const string& task, bool onlyFolders, const string& fileExt) {
+    this->exploreTask = task;
+    this->onlyFolders = onlyFolders;
+    this->fileExt = fileExt;
+
+    explorerPath = GetAbsolutePath(".");
+    explorerPath.erase(explorerPath.begin() + explorerPath.size() - 2, explorerPath.end());
+}
+
+void Window::RenderExplorer() 
+{
+    if (!ImGui::IsPopupOpen(exploreTask.c_str())) {
+        ImGui::OpenPopup(exploreTask.c_str(), ImGuiPopupFlags_NoReopen);
+    }
+    if (ImGui::BeginPopupModal(exploreTask.c_str()))
+    {
+
+        if (onlyFolders)
+        {
+            if (ImGui::Button("Select"))
+            {
+                exploreTask = string();
+                NormalizePathSeparator(explorerPath);
+                ImGui::CloseCurrentPopup();
+                ImGui::EndPopup();
+                return;
+            }
+            ImGui::SameLine();
+        }
+        if (ImGui::Button("Cancel"))
+        {
+            exploreTask = string();
+            explorerPath = string();
+            ImGui::CloseCurrentPopup();
+            ImGui::EndPopup();
+            return;
+        }
+
+        string newPath = explorerPath;
+        if (ImGui::InputText("Path", &newPath, ImGuiInputTextFlags_EnterReturnsTrue))
+        {
+            if (PathExists(newPath))
+            {
+                explorerPath = newPath;
+            }
+        }
+
+        vector<string> folder = GetFolderElementList(explorerPath);
+        bool selected = false;
+        if (ImGui::Selectable("..", &selected)) {
+            selected = false;
+           explorerPath = PathEraseLastName(explorerPath); 
+        }
+        for (u32 i = 0; i < folder.size(); ++i)
+        {
+            string newPath = PathConcat(explorerPath, folder[i]);
+            bool isFile = IsFilePath(newPath);
+            if (onlyFolders && isFile) {
+                continue;
+            }
+            if (isFile && !fileExt.empty() && GetFileExtension(newPath) != fileExt)
+            {
+                continue;
+            }
+            if (ImGui::Selectable(folder[i].c_str(), &selected, ImGuiSelectableFlags_AllowDoubleClick * isFile))
+            {
+                selected = false;
+                explorerPath = newPath;
+                if (isFile)
+                {
+                    exploreTask = string();
+                    NormalizePathSeparator(explorerPath);
+                    ImGui::CloseCurrentPopup();
+                    ImGui::EndPopup();
+                    return;
+                }
+            }
+        }
+
+        ImGui::EndPopup();
+    }
+}
+

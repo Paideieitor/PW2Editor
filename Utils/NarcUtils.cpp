@@ -1,5 +1,6 @@
 #include <stack>
 #include <map>
+#include <cstring>
 
 #include "System.h"
 
@@ -161,7 +162,7 @@ bool VerifyNarc(Narc& narc, FileStream& fileStream, const string& path)
 			{
 				// Reserved
 			}
-			else if (length <= 0xFF)
+            else // if (length <= 0xFF)
 			{
 				length -= 0x80;
 				string directoryName;
@@ -176,12 +177,12 @@ bool VerifyNarc(Narc& narc, FileStream& fileStream, const string& path)
 
 				fileNames[directoryID] = directoryName;
 			}
-			else
-			{
-				Log(WARNING, "Invalid NARC file name table entry ID in file %s", path.c_str());
-				ReleaseFileStream(fileStream);
-				return false;
-			}
+			// else
+			// {
+			// 	Log(WARNING, "Invalid NARC file name table entry ID in file %s", path.c_str());
+			// 	ReleaseFileStream(fileStream);
+			// 	return false;
+			// }
 		}
 	}
 
@@ -234,12 +235,6 @@ int NarcUnpack(const string& path, const string& savePath)
 
 int NarcUnpackSingle(const string& path, const string& savePath, u16 fileID)
 {
-	if (fileID < 0)
-	{
-		Log(WARNING, "File ID is out of scope of NARC file %s", path.c_str());
-		return -1;
-	}
-
 	FileStream fileStream;
 	if (!LoadFileStream(fileStream, path))
 		return -1;
@@ -280,7 +275,7 @@ int NarcUnpackBundle(const string& path, const string& savePath, const vector<u1
 	int extractedFiles = 0;
 	for (u32 fileIdx = 0; fileIdx < fileIDs.size(); ++fileIdx)
 	{
-		if (fileIDs[fileIdx] < 0 || fileIDs[fileIdx] > narc.fileAllocTable.fileCount)
+		if (fileIDs[fileIdx] > narc.fileAllocTable.fileCount)
 		{
 			Log(WARNING, "Skiped file ID %d is out of scope of NARC file %s", fileIDs[fileIdx], path.c_str());
 			continue;

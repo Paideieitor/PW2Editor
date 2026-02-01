@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <cstring>
 
 #include "System.h"
 
@@ -46,8 +47,7 @@ bool CreateFile(const string& path)
 	if (!PathExists(dirPath))
 		CreateFolder(dirPath);
 
-	FILE* file = nullptr;
-	fopen_s(&file, path.c_str(), "w");
+	FILE* file = fopen(path.c_str(), "w");
 	if (!file)
 		return false;
 
@@ -228,8 +228,7 @@ bool LoadFileStream(FileStream& stream, const string& path)
 		return false;
 	}
 
-	FILE* file = nullptr;
-	fopen_s(&file, path.c_str(), "rb");
+	FILE* file = fopen(path.c_str(), "rb");
 	if (!file)
 	{
 		Log(WARNING, "Couldn't open file %s", path.c_str());
@@ -245,7 +244,7 @@ bool LoadFileStream(FileStream& stream, const string& path)
 	}
 	stream.capacity = stream.length;
 
-	fread_s(stream.data, stream.length, sizeof(u8), stream.length, file);
+	fread(stream.data, sizeof(u8), stream.length, file);
 	fgetc(file);
 
 	if (!feof(file))
@@ -261,8 +260,7 @@ bool SaveFileStream(const FileStream& stream, const string& path)
 	if (!PathExists(dirPath))
 		CreateFolder(dirPath);
 
-	FILE* file = nullptr;
-	fopen_s(&file, path.c_str(), "wb");
+	FILE* file = fopen(path.c_str(), "wb");
 	if (!file)
 	{
 		Log(WARNING, "Couldn't open file %s", path.c_str());

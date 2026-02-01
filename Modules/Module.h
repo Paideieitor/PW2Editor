@@ -12,7 +12,7 @@ class Module
 public:
 	Module() = delete;
 	Module(Engine* const engine, u32 group);
-	~Module() {}
+	virtual ~Module() {}
 
 	const u32 group;
 

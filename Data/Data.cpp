@@ -8,7 +8,6 @@ bool Data::LoadBlock(Project* project, u32 idx)
 {
 	vector<int> data;
 	vector<u32> concatIndices = { idx };
-	u32 loadData = 0;
 
 	data.reserve(DEFAULT_BLOCK_CAPACITY);
 	for (u32 concatIdx = 0; concatIdx < (u32)concatIndices.size(); ++concatIdx)

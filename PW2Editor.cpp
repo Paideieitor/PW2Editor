@@ -4,7 +4,7 @@
 #include "Windows/Wizard.h"
 #include "Windows/Engine.h"
 
-int WinMain(int argc, char* argv[])
+int main()
 {
 	CreateFolder("Logs");
 

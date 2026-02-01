@@ -55,7 +55,7 @@ bool List::SearchCheck(u32 itemIdx)
 		string lowerName = LowerCase(name);
 		string lowerSearchName = LowerCase(searchName);
 		if (lowerName.find(lowerSearchName) == string::npos)
-			if (!IsNumber(searchName[0]) || itemIdx != std::stoi(searchName))
+			if (!IsNumber(searchName[0]) || itemIdx != (u32)std::stoi(searchName))
 				return false;
 	}
 

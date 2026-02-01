@@ -2,6 +2,8 @@
 
 bool LoadTrainer(vector<int>& data, vector<u32>& concatIndices, const FileStream& fileStream)
 {
+    UNUSED(concatIndices);
+
 	u32 currentByte = 0;
 
 	data.at(TRAINER_FIELD(TRAINER_TYPE)) = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
@@ -83,6 +85,8 @@ void SetBaseTrainerTeamData(const vector<int>& data, u32 slot, FileStream& fileS
 
 bool LoadTeam(vector<int>& data, vector<u32>& concatIndices, const FileStream& fileStream)
 {
+    UNUSED(concatIndices);
+
 	u32 currentByte = 0;
 
 	int trainerType = data.at(TRAINER_FIELD(TRAINER_TYPE));

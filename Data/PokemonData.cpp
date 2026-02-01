@@ -2,6 +2,8 @@
 
 bool LoadPersonal(vector<int>& data, vector<u32>& concatIndices, const FileStream& fileStream)
 {
+    UNUSED(concatIndices);
+
 	u32 currentByte = 0;
 
 	for (u32 stat = 0; stat < STAT_COUNT; ++stat)
@@ -192,6 +194,8 @@ bool SavePersonal(const vector<int> data, FileStream& fileStream)
 
 bool LoadLearnset(vector<int>& data, vector<u32>& concatIndices, const FileStream& fileStream)
 {
+    UNUSED(concatIndices);
+
 	u32 currentByte = 0;
 	for (u32 idx = 0; idx < LEARNSET_MOVE_COUNT; ++idx)
 	{
@@ -320,6 +324,8 @@ bool OrderLearnset(vector<int>& data, u32 start, u32 size, u32& field)
 
 bool LoadEvolution(vector<int>& data, vector<u32>& concatIndices, const FileStream& fileStream)
 {
+    UNUSED(concatIndices);
+
 	u32 currentByte = 0;
 	for (u32 idx = 0; idx < EVOLUTION_COUNT; ++idx)
 	{
@@ -346,6 +352,8 @@ bool SaveEvolution(const vector<int> data, FileStream& fileStream)
 
 bool LoadChild(vector<int>& data, vector<u32>& concatIndices, const FileStream& fileStream)
 {
+    UNUSED(concatIndices);
+
 	data[CHILD] = (int)FileStreamRead<u16>(fileStream, 0);
 
 	return true;

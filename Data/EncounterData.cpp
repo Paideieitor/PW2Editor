@@ -19,6 +19,8 @@ u32 SetEncounterSlot(int species, int form, int min, int max)
 
 bool LoadEncounter(vector<int>& data, vector<u32>& concatIndices, const FileStream& fileStream)
 {
+    UNUSED(concatIndices);
+
 	u32 currentByte = 0;
 	for (u32 season = SUMMER; season < SEASON_MAX; ++season)
 	{

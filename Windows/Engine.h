@@ -161,22 +161,22 @@ private:
 #define SIMPLE_REVERSE_EVENT(subType, value, newValue) engine->AddReverseEvent(moduleIdx, subType, value, newValue, false)
 #define SAVE_CHECK_REVERSE_EVENT(subType, value, newValue, fileID, comparator) engine->AddReverseEvent(moduleIdx, subType, value, newValue, engine->AddSaveEvent(moduleIdx, fileID, comparator))
 
-#define PMC_CHECK_PATH "vfs\\overlay\\overlay_0344.bin"
+#define PMC_CHECK_PATH (string("vfs") + PATH_SEPARATOR + "overlay" + PATH_SEPARATOR + "overlay_0344.bin")
 
-#define DEV_TOOLS_DIR "..\\Tools"
+#define DEV_TOOLS_DIR (string("..") + PATH_SEPARATOR + "Tools")
 #define DEV_BUILDER_DIR ".."
-#define DEV_PATCH_DIR "..\\Code\\PW2Code"
+#define DEV_PATCH_DIR (string("..") + PATH_SEPARATOR + "Code" + PATH_SEPARATOR + "PW2Code")
 
-#define DEPLOY_TOOLS_DIR "Patcher\\Tools"
+#define DEPLOY_TOOLS_DIR (string("Patcher") + PATH_SEPARATOR + "Tools")
 #define DEPLOY_BUILDER_DIR "Patcher"
-#define DEPLOY_PATCH_DIR "Patcher\\PW2Code"
+#define DEPLOY_PATCH_DIR (string("Patcher") + PATH_SEPARATOR + "PW2Code")
 
 #define PW2CODE_LINK "https://github.com/Paideieitor/PW2Code"
 
 #define PATCH_BUILDER_FILE "PW2Builder.exe"
 
-#define PATCH_SETTINGS_FILE "Builder\\buildSettings.txt"
-#define PATCH_INSTALLED_FILE "Builder\\install.log"
+#define PATCH_SETTINGS_FILE (string("Builder") + PATH_SEPARATOR + "buildSettings.txt")
+#define PATCH_INSTALLED_FILE (string("Builder") + PATH_SEPARATOR + "install.log")
 
 #define CONSTRUCTOR_LOAD_QUIT "Engine could not load"
 #define RELOAD_CLEAR_QUIT "Failed to clear data"

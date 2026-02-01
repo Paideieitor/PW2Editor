@@ -34,7 +34,7 @@ private:
 	void UpdateProjectListOrderAdd();
 	void UpdateProjectListOrderDelete(u32 deletedIdx);
 
-	ReturnState CreateProject();
+	ReturnState CreateProject(const string& path);
 
 	int selectedIdx;
 	vector<Project> projectList;

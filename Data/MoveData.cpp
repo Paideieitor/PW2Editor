@@ -2,6 +2,8 @@
 
 bool LoadMove(vector<int>& data, vector<u32>& concatIndices, const FileStream& fileStream)
 {
+    UNUSED(concatIndices);
+
 	u32 currentByte = 0;
 
 	data.at(MOVE_TYPE) = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);

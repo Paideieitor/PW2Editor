@@ -1,5 +1,7 @@
 #include "Utils/StringUtils.h"
 
+#include <cstring>
+
 #define CUTF_LEAD_SURROGATE_MIN  0xd800u
 #define CUTF_LEAD_SURROGATE_MAX  0xdbffu
 #define CUTF_TRAIL_SURROGATE_MIN 0xdc00u

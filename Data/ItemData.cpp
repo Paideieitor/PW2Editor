@@ -2,6 +2,8 @@
 
 bool LoadItem(vector<int>& data, vector<u32>& concatIndices, const FileStream& fileStream)
 {
+    UNUSED(concatIndices);
+
 	u32 currentByte = 0;
 
 	data.at(PRICE) = (int)FileStreamReadUpdate<u16>(fileStream, currentByte);
@@ -52,7 +54,7 @@ bool LoadItem(vector<int>& data, vector<u32>& concatIndices, const FileStream& f
 	for (int field = PP_REPLENISH; field <= FRIENDSHIP_ADD_3; ++field)
 	{
 		u16 index = field - PP_REPLENISH;
-		data.at(field) = (boosts & (0x1 << index)) >> index;
+		data.at(field) = (functions & (0x1 << index)) >> index;
 	}
 
 	data.at(ITEM_EV_HP) = (int)FileStreamReadUpdate<u8>(fileStream, currentByte);
