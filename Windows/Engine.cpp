@@ -17,7 +17,8 @@
 #include "Modules/Trainer.h"
 #include "Modules/Encounter.h"
 
-#define TEXT_NARC_PATH "0\\0\\2"
+#define NARC_PATH_TEMPLATE(a, b, c) (string(a) + PATH_SEPARATOR + b + PATH_SEPARATOR + c)
+#define TEXT_NARC_PATH NARC_PATH_TEMPLATE("0", "0", "2")
 
 enum DataNarc
 {
@@ -34,17 +35,17 @@ struct NarcPath
 };
 const vector<NarcPath> narcPaths = {
 	// POKEMONS -> PERSONAL, LEARNSET, EVOLUTION, CHILD
-	{ vector<string>({"0\\1\\6", "0\\1\\8", "0\\1\\9", "0\\2\\0", "0\\2\\0"}), vector<string>({"0\\1\\6", "0\\1\\8", "0\\1\\9", "0\\2\\0", "0\\2\\0"}) },
+	{ vector<string>({NARC_PATH_TEMPLATE("0", "1", "6"), NARC_PATH_TEMPLATE("0", "1", "8"), NARC_PATH_TEMPLATE("0", "1", "9"), NARC_PATH_TEMPLATE("0", "2", "0"), NARC_PATH_TEMPLATE("0", "2", "0")}), vector<string>({NARC_PATH_TEMPLATE("0", "1", "6"), NARC_PATH_TEMPLATE("0", "1", "8"), NARC_PATH_TEMPLATE("0", "1", "9"), NARC_PATH_TEMPLATE("0", "2", "0"), NARC_PATH_TEMPLATE("0", "2", "0")}) },
 	// ITEMS
-	{ vector<string>({"0\\2\\4"}) , vector<string>({"0\\2\\4"}) },
+	{ vector<string>({NARC_PATH_TEMPLATE("0", "2", "4")}) , vector<string>({NARC_PATH_TEMPLATE("0", "2", "4")}) },
 	// MOVES -> DATA, ANIMATIONS
-	{ vector<string>({"0\\2\\1", "0\\6\\6"}) , vector<string>({"0\\2\\1", "0\\6\\5"}) },
+	{ vector<string>({NARC_PATH_TEMPLATE("0", "2", "1"), NARC_PATH_TEMPLATE("0", "6", "6")}) , vector<string>({NARC_PATH_TEMPLATE("0", "2", "1"), NARC_PATH_TEMPLATE("0", "6", "5")}) },
 	// TRAINERS -> DATA, TEAMS
-	{ vector<string>({"0\\9\\2", "0\\9\\3"}) , vector<string>({"0\\9\\1", "0\\9\\2"}) },
+	{ vector<string>({NARC_PATH_TEMPLATE("0", "9", "2"), NARC_PATH_TEMPLATE("0", "9", "3")}) , vector<string>({NARC_PATH_TEMPLATE("0", "9", "1"), NARC_PATH_TEMPLATE("0", "9", "2")}) },
 	// ZONES
-	{ vector<string>({"0\\1\\2"}) , vector<string>({"0\\1\\2"}) },
+	{ vector<string>({NARC_PATH_TEMPLATE("0", "1", "2")}) , vector<string>({NARC_PATH_TEMPLATE("0", "1", "2")}) },
 	// ENCOUNTERS
-	{ vector<string>({"1\\2\\6"}) , vector<string>({"1\\2\\7"}) },
+	{ vector<string>({NARC_PATH_TEMPLATE("1", "2", "6")}) , vector<string>({NARC_PATH_TEMPLATE("1", "2", "7")}) },
 };
 
 const vector<string> alternateVersions = {
@@ -568,7 +569,7 @@ void Engine::InstallPatch(string settingsPath)
 	buildSettings += '\n';
 
 	buildSettings += "SET ARM_NONE_EABI_DIR=";
-	buildSettings += PathConcat(toolsDir, "Arm-None-Eabi\\bin\\");
+	buildSettings += PathConcat(toolsDir, string("Arm-None-Eabi") + PATH_SEPARATOR + "bin" + PATH_SEPARATOR);
 	buildSettings += '\n';
 
 	buildSettings += "SET JAVA_DIR=";
@@ -588,11 +589,7 @@ string GetBuilderPath()
 		return builderPath;
 
 	builderPath = DEV_BUILDER_DIR;
-#ifdef _WIN64
 	builderPath = PathConcat(builderPath, "x64");
-#else
-	builderPath = ConcatPath(builderPath, "x86");
-#endif
 	builderPath = PathConcat(builderPath, "Release");
 	return builderPath;
 }
