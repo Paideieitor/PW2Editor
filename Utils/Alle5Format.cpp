@@ -5,14 +5,14 @@
 #include "Utils/Alle5Format.h"
 #include "Utils/StringUtils.h"
 
-map<wchar_t, wchar_t> specialCharacters = {
+map<u16, u16> specialCharacters = {
     {0x246D, L'♂'},
     {0x246E, L'♀'},
     {0xFFFE, L'\n'},
 };
 
-#define COMMAND_HEADER (wchar_t)0xF000
-map<wchar_t, wstring> commands = {
+#define COMMAND_HEADER (u16)0xF000
+map<u16, wstring> commands = {
     {0x0100, L"Trainer Name"},
     {0x0101, L"Pokémon Name"},
     {0x0102, L"Pokémon Nick"},
@@ -67,22 +67,22 @@ map<wchar_t, wstring> commands = {
     {0xFF00, L"Color"},
 };
 
-#define NINE_BIT_HEADER (wchar_t)0xF100
+#define NINE_BIT_HEADER (u16)0xF100
 #define NINE_BIT_NAME L"9-Bit"
 
-#define AVAILABLE_BITS sizeof(wchar_t) * 8
+#define AVAILABLE_BITS sizeof(u16) * 8
 #define BIT_MASK 0x01FF
 #define MAX_READ 9
 wstring Process9Bit(const wstring& str)
 {
     wstring output;
 
-    wchar_t character = 0;
+    u16 character = 0;
     u8 nextBit = 0;
 
     for (u32 i = 0; i < (u32)str.size(); ++i)
     {
-        wchar_t data = str[i];
+        u16 data = str[i];
         u8 nextReadBit = 0;
 
         while (nextReadBit < AVAILABLE_BITS)
@@ -92,10 +92,10 @@ wstring Process9Bit(const wstring& str)
             if (bitsToRead > readableBits)
                 bitsToRead = readableBits;
 
-            wchar_t mask = BIT_MASK >> (MAX_READ - bitsToRead);
+            u16 mask = BIT_MASK >> (MAX_READ - bitsToRead);
             mask = mask << nextReadBit;
 
-            wchar_t bitsRead = (data & mask) >> nextReadBit;
+            u16 bitsRead = (data & mask) >> nextReadBit;
             character |= bitsRead << nextBit;
 
             nextBit += bitsToRead;
@@ -114,13 +114,13 @@ wstring Process9Bit(const wstring& str)
     return output;
 }
 
-wchar_t EncryptCharacter(wchar_t character, u16& key)
+u16 EncryptCharacter(u16 character, u16& key)
 {
     character = key ^ character;
     key = ((key << 3) | (key >> 13)) & 0xFFFF;
     return character;
 }
-wchar_t DecryptCharacter(wchar_t character, u16& key)
+u16 DecryptCharacter(u16 character, u16& key)
 {
     character = character ^ key;
     key = ((key << 3) | (key >> 13)) & 0xFFFF;
@@ -182,7 +182,7 @@ bool LoadAlle5Data(const FileStream& fileStream, vector<string>& lines)
         u32 start = offset;
         while (offset < start + length * 2) // loop through the entire text line
         {
-            wchar_t character = DecryptCharacter(FileStreamReadUpdate<wchar_t>(fileStream, offset), lineKey);
+            u16 character = DecryptCharacter(FileStreamReadUpdate<u16>(fileStream, offset), lineKey);
             if (character == 0xFFFF)
                 break;
 
@@ -202,7 +202,7 @@ bool LoadAlle5Data(const FileStream& fileStream, vector<string>& lines)
                 continue;
             }
 
-            map<wchar_t, wchar_t>::iterator itr = specialCharacters.find(character);
+            map<u16, u16>::iterator itr = specialCharacters.find(character);
             if (itr != specialCharacters.end())
             {
                 line += itr->second;
@@ -213,16 +213,16 @@ bool LoadAlle5Data(const FileStream& fileStream, vector<string>& lines)
             {
                 line += L'[';
 
-                u16 type = (u16)DecryptCharacter(FileStreamReadUpdate<wchar_t>(fileStream, offset), lineKey);
-                u16 paramCount = (u16)DecryptCharacter(FileStreamReadUpdate<wchar_t>(fileStream, offset), lineKey);
+                u16 type = (u16)DecryptCharacter(FileStreamReadUpdate<u16>(fileStream, offset), lineKey);
+                u16 paramCount = (u16)DecryptCharacter(FileStreamReadUpdate<u16>(fileStream, offset), lineKey);
 
-                map<wchar_t, wstring>::iterator cmdItr = commands.find(type);
+                map<u16, wstring>::iterator cmdItr = commands.find(type);
                 if (cmdItr != commands.end())
                 {
                     line += cmdItr->second;
                     for (u8 paramIdx = 0; paramIdx < paramCount; ++paramIdx)
                     {
-                        u16 param = (u16)DecryptCharacter(FileStreamReadUpdate<wchar_t>(fileStream, offset), lineKey);
+                        u16 param = (u16)DecryptCharacter(FileStreamReadUpdate<u16>(fileStream, offset), lineKey);
                         line += L'(' + to_wstring(param) + L')';
                     }
                 }
@@ -259,7 +259,7 @@ bool LoadAlle5File(const string& path, vector<string>& lines)
 wstring MakeWideLine(string line)
 {
     wstring output = Utf8ToWide(line);
-    output.push_back((wchar_t)0xFFFF);
+    output.push_back((u16)0xFFFF);
     return output;
 }
 
@@ -303,7 +303,7 @@ bool SaveAlle5File(const string& path, const vector<string>& lines)
         u32 length = 0;
         for (u32 characterIdx = 0; characterIdx < line.length(); ++characterIdx)
         {
-            wchar_t character = line[characterIdx];
+            u16 character = line[characterIdx];
 
             // Check if there is a command
             if (character == L'[')
@@ -342,14 +342,14 @@ bool SaveAlle5File(const string& path, const vector<string>& lines)
                     command += line[characterIdx];
                 }
 
-                for (map<wchar_t, wstring>::iterator itr = commands.begin();
+                for (map<u16, wstring>::iterator itr = commands.begin();
                     itr != commands.end(); ++itr)
                 {
                     if (itr->second == command)
                     {
                         FileStreamPutBack<u16>(fileStream, EncryptCharacter(COMMAND_HEADER, lineKey));
                         FileStreamPutBack<u16>(fileStream, EncryptCharacter(itr->first, lineKey));
-                        FileStreamPutBack<u16>(fileStream, EncryptCharacter((wchar_t)params.size(), lineKey));
+                        FileStreamPutBack<u16>(fileStream, EncryptCharacter((u16)params.size(), lineKey));
 
                         offset += 6;
                         length += 3;
@@ -368,7 +368,7 @@ bool SaveAlle5File(const string& path, const vector<string>& lines)
                 continue;
             }
 
-            for (map<wchar_t, wchar_t>::iterator itr = specialCharacters.begin();
+            for (map<u16, u16>::iterator itr = specialCharacters.begin();
                 itr != specialCharacters.end(); ++itr)
             {
                 if (itr->second == character)
