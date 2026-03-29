@@ -1,6 +1,6 @@
 #include "System.h"
 
-#include "Utils/NarcUtils.h"
+#include "Utils/NDS/NarcUtils.h"
 
 #include "Data/Data.h"
 

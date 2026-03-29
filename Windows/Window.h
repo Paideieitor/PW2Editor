@@ -18,6 +18,9 @@
 #include "Globals.h"
 #include "System.h"
 
+#include "Utils/Internal/Image.h"
+#include "Utils/Internal/Palette.h"
+
 class Window
 {
 public:
@@ -26,6 +29,8 @@ public:
 
 	ReturnState Init(int width, int height, const string& name, const string& font, float fontSize);
 	ReturnState Update();
+
+    void TextureUpdate(ImTextureID texture, const Image& image, const Palette& palette, u32 palIdx);
 
 protected:
 	virtual ReturnState RenderGUI() = 0;

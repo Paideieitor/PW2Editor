@@ -4,7 +4,8 @@
 #include <unordered_map>
 
 #include "Utils/FileUtils.h"
-#include "Utils/KlangFormat.h"
+#include "Utils/Internal/KlangFormat.h"
+#include "Utils/Internal/Cache/TextureCache.h"
 
 #include "Windows/Window.h"
 
@@ -43,6 +44,12 @@ MOVE_DESCRIPTION_FILE_ID, ITEM_NAME_FILE_ID, ITEM_DESCRIPTION_FILE_ID, ITEM_NAME
 ITEM_NAME_PLURAL_FILE_ID, LOCATION_NAME_FILE_ID, TRAINER_NAME_FILE_ID, TRAINER_CLASS_FILE_ID, TYPE_NAME_FILE_ID, \
 ABILITY_NAME_FILE_ID, NATURE_FILE_ID,
 
+#define NARC_PATH_TEMPLATE(a, b, c) (string(a) + PATH_SEPARATOR + b + PATH_SEPARATOR + c)
+#define TEXT_NARC_PATH NARC_PATH_TEMPLATE("0", "0", "2")
+#define BATTLE_SPRITES_NARC_PATH NARC_PATH_TEMPLATE("0", "0", "4")
+#define PKM_ICONS_NARC_PATH NARC_PATH_TEMPLATE("0", "0", "7")
+#define ITEM_ICONS_NARC_PATH NARC_PATH_TEMPLATE("0", "2", "5")
+
 class Module;
 
 class Engine : public Window
@@ -78,6 +85,12 @@ public:
 	void ComboBox(Data* data, u32 idx, u32 field, u32* selectable, u32 selected, u32 group, const string& label, const std::vector<std::string>* const list);
 	void CheckBox(Data* data, u32 idx, u32 field, u32* selectable, u32 selected, u32 group, const string& label);
 	void ListBox(Data* data, u32 idx, u32 firstField, u32* selectable, u32 selected, u32 group, const string& label, const vector<string>* const list);
+
+    void DisplayImage(const string& narcDir, u32 imgFileIdx, u32 flags, u32 palFileIdx, u32 palIdx);
+    void DisplayImage(const string& narcDir, u32 imgFileIdx, u32 flags, u32 palFileIdx, u32 palIdx, u32 x, u32 y, u32 width, u32 height);
+
+    void DisplayPokemonIcon(u32 pokemon, u32 form, u32 sex, bool full);
+    void DisplayItemIcon(u32 item, bool full);
 
 	Project* const project;
 	bool commandInput = false;
@@ -147,6 +160,8 @@ private:
 
 	vector<Data*> datas = vector<Data*>();
 	vector<Module*> modules = vector<Module*>();
+
+    TextureCache textureCache;
 
 	vector<Action> actions = vector<Action>();
 	int actionIdx = -1;

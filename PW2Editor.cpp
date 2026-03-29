@@ -6,7 +6,7 @@
 
 int main()
 {
-	CreateFolder("Logs");
+    CreateFolder("Logs");
 
 	Project project;
 	ReturnState state = OK;
@@ -52,7 +52,7 @@ int main()
 		state = engine->Update();
 		if (state == EXIT)
 		{
-	
+            // TODO add save before quit
 		}
 	}
 	delete engine;

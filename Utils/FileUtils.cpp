@@ -311,6 +311,15 @@ void FileStreamBufferWriteBack(FileStream& stream, const u8* buffer, u32 length)
 	stream.length += length;
 }
 
+void DumpFile(u8* buffer, u32 length, const string& path)
+{
+    FileStream stream;
+    LoadEmptyFileStream(stream);
+    FileStreamBufferWriteBack(stream, buffer, length);
+    SaveFileStream(stream, path);
+    ReleaseFileStream(stream);
+}
+
 u8* FileStreamGetDataPtr(const FileStream& stream, u32 offset)
 {
 	return stream.data + offset;
@@ -319,4 +328,22 @@ u8* FileStreamGetDataPtr(const FileStream& stream, u32 offset)
 bool FileStreamEnded(const FileStream& stream, u32 offset)
 {
 	return offset >= stream.length;
+}
+
+bool AuthFileIdentifier(const FileStream& stream, u32 offset, const string& auth)
+{
+    return AuthFileIdentifierUpdate(stream, offset, auth);
+}
+
+bool AuthFileIdentifierUpdate(const FileStream& stream, u32& offset, const string& auth)
+{
+    if (offset + auth.size() > stream.length)
+        return false;
+
+    u32 start = offset;
+    for (; offset < (start + auth.size()); ++offset)
+        if (stream.data[offset] != (u8)auth[offset - start])
+            return false;
+
+    return true;
 }

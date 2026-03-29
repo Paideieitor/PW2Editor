@@ -2,7 +2,7 @@
 
 #include "System.h"
 
-#include "Utils/Alle5Format.h"
+#include "Utils/NDS/Alle5Format.h"
 #include "Utils/StringUtils.h"
 
 map<u16, u16> specialCharacters = {

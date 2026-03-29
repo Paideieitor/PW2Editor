@@ -1,7 +1,7 @@
 #include "System.h"
 
 #include "Utils/FileUtils.h"
-#include "Utils/KlinFormat.h"
+#include "Utils/Internal/KlinFormat.h"
 
 #include "Data/Project.h"
 

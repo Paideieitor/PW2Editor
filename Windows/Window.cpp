@@ -155,6 +155,20 @@ ReturnState Window::Update()
 	return output;
 }
 
+void Window::TextureUpdate(ImTextureID texture, const Image& image, const Palette& palette, u32 palIdx)
+{
+    UNUSED(image); UNUSED(palette); UNUSED(palIdx);
+
+    glBindTexture(GL_TEXTURE_2D, (GLuint)texture);
+    u32 x = 0;
+    u32 y = 0;
+    u32 w = 1;
+    u32 h = 1;
+    u8 bytes[4] = {0, 255, 0, 255};
+    glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, w, h, GL_RGBA, GL_UNSIGNED_BYTE, bytes);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
 void Window::Release()
 {
     // Cleanup

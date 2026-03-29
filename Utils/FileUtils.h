@@ -130,10 +130,18 @@ bool FileStreamReplace(FileStream& stream, const u32 offset, const T& value)
 	return 1;
 }
 
+void DumpFile(u8* buffer, u32 length, const string& path);
+
 // Get a pointer to an offset of the data stored in the file stream
 u8* FileStreamGetDataPtr(const FileStream& stream, u32 offset);
 
 // Check if an offset is inside the file
 bool FileStreamEnded(const FileStream& stream, u32 offset);
+
+// Check that the bytes in a file match a string sequence from an offset
+bool AuthFileIdentifier(const FileStream& stream, u32 offset, const string& auth);
+
+// Check that the bytes in a file match a string sequence from an offset and update the offset to the end of the data
+bool AuthFileIdentifierUpdate(const FileStream& stream, u32& offset, const string& auth);
 
 #endif // _FILE_UTILS_H

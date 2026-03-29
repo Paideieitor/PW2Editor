@@ -54,85 +54,176 @@ moves(engine->GetTextFile(MOVE_NAME_FILE_ID))
 
 ReturnState Pokemon::RenderGUI()
 {
-	u32 currentPokemon = GetProjectPokemon(*engine->project);
-	u32 currentForm = GetProjectForm(*engine->project);
+    u32 currentPokemon = GetProjectPokemon(*engine->project);
+    u32 currentForm = GetProjectForm(*engine->project);
 
-	ImGui::Begin(u8"Pokémon");
+    ImGui::Begin("Pokémon");
 
-	u32 formCount = engine->GetConcatDataCount(engine->pokemons, currentPokemon);
-	if (formCount == 0)
-	{
-		ImGui::Text("No Data");
-	}
-	else if (ImGui::BeginTabBar("Form Tabs"))
-	{
-		bool rendered = false;
-		for (u32 form = 0; form < formCount; ++form)
-		{
-			ImGuiTabItemFlags flags = ImGuiTabItemFlags_None;
-			if (currentForm == form)
-				flags |= ImGuiTabItemFlags_SetSelected;
-		
-			u32 formIdx = engine->GetConcatDataIdx(engine->pokemons, currentPokemon, form);
-			bool tabOutput = ImGui::BeginTabItem(to_string(formIdx).c_str(), 0, flags);
-			if (ImGui::IsItemClicked())
-			{
-				if (currentForm != form)
-				{
-					currentForm = form;
-					SetProjectForm(*engine->project, currentForm);
-				}
-			}
-		
-			if (!rendered && currentForm == form)
-			{
-				rendered = true;
+    u32 formCount = engine->GetConcatDataCount(engine->pokemons, currentPokemon);
+    if (formCount == 0)
+    {
+        ImGui::Text("No Data");
+        ImGui::End();
+        return OK;
+    }
 
-				ImGui::BeginGroup();
-				{
-					ImGui::Text("Personal");
-					ImGui::BeginGroup();
-					{
-						ImGui::BeginGroup();
-						{
-							Personal(currentForm);
-							Child(currentForm);
-						}
-						ImGui::EndGroup();
-						ImGui::SameLine();
-						Tutors(currentForm);
-					}
-					ImGui::EndGroup();
-				}
-				ImGui::EndGroup();
+    u32 dataForm = currentForm;
+    if (dataForm >= formCount)
+        dataForm = 0;
 
-				ImGui::SameLine();
+    for (u32 idx = 0; idx < formCount; ++idx) 
+    {
+        if (idx != 0)
+            ImGui::SameLine();
+        int formGUI = (int)currentForm;
+        if (ImGui::RadioButton(("##FormSelect" + to_string(idx)).c_str(), &formGUI, idx))
+        {
+            if (currentForm != idx)
+            {
+                currentForm = idx;
+                dataForm = idx;
+                SetProjectForm(*engine->project, currentForm);
+            }
+        }
+        ImGui::SameLine();
+        engine->DisplayPokemonIcon(currentPokemon, idx, 0, false);
+    }
 
-				ImGui::BeginGroup();
-				{
-					ImGui::Text("Learnset");
-					Learnset(form);
-				}
-				ImGui::EndGroup();
+    u32 formIdx = engine->GetConcatDataIdx(engine->pokemons, currentPokemon, dataForm);
 
-				ImGui::SameLine();
+    ImGui::BeginGroup();
+    {
+        ImGui::Text("Personal");
+        ImGui::BeginGroup();
+        {
+            ImGui::BeginGroup();
+            {
+                Personal(dataForm);
+                Child(dataForm);
+            }
+            ImGui::EndGroup();
+            ImGui::SameLine();
+            Tutors(dataForm);
+        }
+        ImGui::EndGroup();
+    }
+    ImGui::EndGroup();
 
-				ImGui::BeginGroup();
-				{
-					ImGui::Text("Evolution");
-					Evolution(form);
-				}
-				ImGui::EndGroup();
-			}
-		
-			if (tabOutput)
-				ImGui::EndTabItem();
-		}
-		ImGui::EndTabBar();
-	}
+    ImGui::SameLine();
 
-	ImGui::End();
-	return OK;
+    ImGui::BeginGroup();
+    {
+        ImGui::Text("Learnset");
+        Learnset(dataForm);
+    }
+    ImGui::EndGroup();
+
+    ImGui::SameLine();
+
+    ImGui::BeginGroup();
+    {
+        ImGui::Text("Evolution");
+        Evolution(dataForm);
+    }
+    ImGui::EndGroup();
+
+    ImGui::BeginGroup();
+    {
+        u32 realFormCount = (u32)POKEMON_GET_VALUE(PERSONAL_FIELD(0, FORM_COUNT));
+        if (realFormCount > 1 && realFormCount != formCount)
+        {
+            for (u32 idx = 0; idx < realFormCount; ++idx) 
+            {
+                if (idx != 0)
+                    ImGui::SameLine();
+                int realFormGUI = (int)currentForm;
+                if (ImGui::RadioButton(to_string(idx).c_str(), &realFormGUI, idx))
+                {
+                    if (currentForm != idx)
+                    {
+                        currentForm = idx;
+                        dataForm = idx;
+                        SetProjectForm(*engine->project, currentForm);
+                    }
+                }
+            }
+        }
+
+        bool spriteForm = (bool)POKEMON_GET_VALUE(PERSONAL_FIELD(0, FORM_RARE));
+
+        u32 startFileIdx = 0;
+        if (!spriteForm && currentForm != 0)
+        {
+            startFileIdx = 13700;
+            u32 formSpriteOffset = (u32)POKEMON_GET_VALUE(PERSONAL_FIELD(0, FORM_SPRITE_OFFSET));
+            startFileIdx += 20 * (formSpriteOffset + currentForm - 1);
+        }
+        else
+        {
+            startFileIdx = 20 * currentPokemon;
+        }
+
+        u32 palFileIdx = startFileIdx + 18;
+        if (spriteForm && currentForm != 0)
+        {
+            palFileIdx = 15033;
+            u32 formSpriteOffset = (u32)POKEMON_GET_VALUE(PERSONAL_FIELD(0, FORM_SPRITE_OFFSET));
+            palFileIdx += 2 * (formSpriteOffset + currentForm - 1);
+        }
+
+        ImGui::BeginChild("ImageChild", ImVec2(0, 0), ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY |  ImGuiChildFlags_AlwaysAutoResize, ImGuiWindowFlags_None);
+        if (ImGui::BeginTable("ImageTable", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_SizingFixedFit))
+        {
+            ImVec4 col = ImGui::GetStyle().Colors[ImGuiCol_Header];
+            ImU32 color = ImGui::ColorConvertFloat4ToU32(col);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(1);
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, color);
+            ImGui::Text("Icon");
+            ImGui::TableSetColumnIndex(2);
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, color);
+            ImGui::Text("Front");
+            ImGui::TableSetColumnIndex(3);
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, color);
+            ImGui::Text("Back");
+
+            col = ImGui::GetStyle().Colors[ImGuiCol_FrameBg];
+            color = ImGui::ColorConvertFloat4ToU32(col);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, color);
+            ImGui::Text("Male");
+            ImGui::TableSetColumnIndex(1);
+            engine->DisplayPokemonIcon(currentPokemon, currentForm, 0, true);
+            ImGui::TableSetColumnIndex(2);
+            engine->DisplayImage(BATTLE_SPRITES_NARC_PATH, startFileIdx, IMAGE_FLAG_DETANGLE | IMAGE_FLAG_DECOMP, palFileIdx, 0); 
+            engine->DisplayImage(BATTLE_SPRITES_NARC_PATH, startFileIdx + 2, IMAGE_FLAG_DECOMP, palFileIdx, 0); 
+            ImGui::TableSetColumnIndex(3);
+            engine->DisplayImage(BATTLE_SPRITES_NARC_PATH, startFileIdx + 9, IMAGE_FLAG_DETANGLE | IMAGE_FLAG_DECOMP, palFileIdx, 0); 
+            engine->DisplayImage(BATTLE_SPRITES_NARC_PATH, startFileIdx + 11, IMAGE_FLAG_DECOMP, palFileIdx, 0); 
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::TableSetBgColor(ImGuiTableBgTarget_CellBg, color);
+            ImGui::Text("Female");
+            ImGui::TableSetColumnIndex(1);
+            engine->DisplayPokemonIcon(currentPokemon, currentForm, 1, true);
+            ImGui::TableSetColumnIndex(2);
+            engine->DisplayImage(BATTLE_SPRITES_NARC_PATH, startFileIdx + 1, IMAGE_FLAG_DETANGLE | IMAGE_FLAG_DECOMP, palFileIdx, 0); 
+            engine->DisplayImage(BATTLE_SPRITES_NARC_PATH, startFileIdx + 3, IMAGE_FLAG_DECOMP, palFileIdx, 0); 
+            ImGui::TableSetColumnIndex(3);
+            engine->DisplayImage(BATTLE_SPRITES_NARC_PATH, startFileIdx + 10, IMAGE_FLAG_DETANGLE | IMAGE_FLAG_DECOMP, palFileIdx, 0); 
+            engine->DisplayImage(BATTLE_SPRITES_NARC_PATH, startFileIdx + 12, IMAGE_FLAG_DECOMP, palFileIdx, 0); 
+            ImGui::EndTable();
+        }
+        ImGui::EndChild();
+    }
+    ImGui::EndGroup();
+
+    ImGui::End();
+    return OK;
 }
 
 void Pokemon::Personal(u32 form)

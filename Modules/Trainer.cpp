@@ -233,9 +233,13 @@ bool Trainer::TeamMember(int trainerType, u32 slot)
 	{
 		ImGui::BeginGroup();
 		{
+            u32 currentPokemon = TRAINER_GET_VALUE(TEAM_FIELD(slot, TRAINER_SPECIES));
 			TRAINER_COMBO_BOX(TEAM_FIELD(slot, TRAINER_SPECIES), "Species", pokemons);
 
+            u32 currentForm = TRAINER_GET_VALUE(TEAM_FIELD(slot, TRAINER_FORM));
 			TRAINER_INPUT_INT(TEAM_FIELD(slot, TRAINER_FORM), "Form", 31, 0);
+            ImGui::SameLine();
+            engine->DisplayPokemonIcon(currentPokemon, currentForm, 0, false);
 			if (trainerType == PERFECT_TRAINER)
 			{
 				ImGui::SameLine();
@@ -250,7 +254,9 @@ bool Trainer::TeamMember(int trainerType, u32 slot)
 
 		ImGui::BeginDisabled(trainerType == SIMPLE_TRAINER || trainerType == MOVE_TRAINER);
 		{
+            u32 heldItem = TRAINER_GET_VALUE(TEAM_FIELD(slot, TRAINER_HELD_ITEM));
 			TRAINER_COMBO_BOX(TEAM_FIELD(slot, TRAINER_HELD_ITEM), "Held Item", items);
+            engine->DisplayItemIcon(heldItem, false);
 		}
 		ImGui::EndDisabled();
 

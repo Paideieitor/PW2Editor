@@ -160,7 +160,7 @@ void Encounter::Season(u32 encounterIdx, u32 season)
 	}
 	ImGui::EndGroup();
 
-	ImGui::NewLine();
+    ImGui::NewLine();
 
 	ImGui::BeginGroup();
 	{
@@ -176,7 +176,7 @@ void Encounter::Season(u32 encounterIdx, u32 season)
 	}
 	ImGui::EndGroup();
 
-	ImGui::NewLine();
+    ImGui::NewLine();
 
 	ImGui::BeginGroup();
 	{
@@ -211,62 +211,56 @@ u32 Encounter::Table(u32 encounterIdx, u32 season, const string& label, u32 type
 	ImGui::SameLine();
 	ENCOUNTER_INPUT_INT(encounterIdx, ENCOUNTER_RATE(season, type), "Rate", 0xFF, 0);
 
-	const vector<string>& rate = rates.at(ratesIdx);
-	u32 field = firstField;
-	ImGui::BeginGroup();
-	{
-		ImGui::Text("        Species");
-		for (u32 idx = 0; idx < (u32)rate.size(); ++idx)
-		{
-			ImGui::Text(rate.at(idx));
-			ImGui::SameLine();
-			ENCOUNTER_COMBO_BOX(encounterIdx, field, "", pokemons);
-			field += ENCOUNTER_MAX;
-		}
-	}
-	ImGui::EndGroup();
-	ImGui::SameLine();
+    const vector<string>& rate = rates.at(ratesIdx);
 
-	field = firstField + 1;
-	ImGui::BeginGroup();
-	{
-		ImGui::Text("Form");
-		for (u32 idx = 0; idx < (u32)rate.size(); ++idx)
-		{
-			ENCOUNTER_INPUT_INT(encounterIdx, field, "", 31, 0);
-			field += ENCOUNTER_MAX;
-		}
-	}
-	ImGui::EndGroup();
-	ImGui::SameLine();
+    u32 field = firstField;
+    ImGui::BeginChild(("TableContainer" + to_string(type)).c_str(), ImVec2(0, 0), ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY |  ImGuiChildFlags_AlwaysAutoResize, ImGuiWindowFlags_None);
+    if (ImGui::BeginTable(("EncounterTable" + to_string(type)).c_str(), 6, ImGuiTableFlags_Borders | ImGuiTableFlags_SizingFixedFit))
+    {
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::Text("Rate");
+        ImGui::TableSetColumnIndex(1);
+        ImGui::Text("Species");
+        ImGui::TableSetColumnIndex(2);
+        ImGui::Text("Form");
+        ImGui::TableSetColumnIndex(4);
+        ImGui::Text("Min.");
+        ImGui::TableSetColumnIndex(5);
+        ImGui::Text("Max.");
 
-	field = firstField + 2;
-	ImGui::BeginGroup();
-	{
-		ImGui::Text("Min.");
-		for (u32 idx = 0; idx < (u32)rate.size(); ++idx)
-		{
-			ENCOUNTER_INPUT_INT(encounterIdx, field, "", 100, 0);
-			field += ENCOUNTER_MAX;
-		}
-	}
-	ImGui::EndGroup();
-	ImGui::SameLine();
+        for (u32 idx = 0; idx < rate.size(); ++idx)
+        {
+            ImGui::TableNextRow();
+            u32 col = 0;
 
-	field = firstField + 3;
-	ImGui::BeginGroup();
-	{
-		ImGui::Text("Max.");
-		for (u32 idx = 0; idx < (u32)rate.size(); ++idx)
-		{
-			ENCOUNTER_INPUT_INT(encounterIdx, field, "", 100, 0);
-			field += ENCOUNTER_MAX;
-		}
-	}
-	ImGui::EndGroup();
+            ImGui::TableSetColumnIndex(col++);
+            ImGui::Text(rate.at(idx));
+
+            ImGui::TableSetColumnIndex(col++);
+            u32 currentPokemon = (u32)ENCOUNTER_GET_VALUE(encounterIdx, field);
+            ENCOUNTER_COMBO_BOX(encounterIdx, field++, "", pokemons);
+
+            ImGui::TableSetColumnIndex(col++);
+            u32 currentForm = (u32)ENCOUNTER_GET_VALUE(encounterIdx, field);
+			ENCOUNTER_INPUT_INT(encounterIdx, field++, "", 31, 0);
+
+            ImGui::TableSetColumnIndex(col++);
+            engine->DisplayPokemonIcon(currentPokemon, currentForm, 0, false);
+
+            ImGui::TableSetColumnIndex(col++);
+			ENCOUNTER_INPUT_INT(encounterIdx, field++, "", 100, 0);
+
+            ImGui::TableSetColumnIndex(col++);
+			ENCOUNTER_INPUT_INT(encounterIdx, field++, "", 100, 0);
+        }
+
+        ImGui::EndTable();
+    }
+    ImGui::EndChild();
 
 	// Set the returning field to the first field in the next encounter table
-	return field - ENCOUNTER_MAX + 1;
+	return field;
 }
 
 bool Encounter::HasSeasons(u32 encounterIdx)

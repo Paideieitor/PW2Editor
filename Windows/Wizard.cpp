@@ -2,7 +2,7 @@
 
 #include "Utils/FileUtils.h"
 #include "Utils/StringUtils.h"
-#include "Utils/KlinFormat.h"
+#include "Utils/Internal/KlinFormat.h"
 
 #include "Windows/Wizard.h"
 

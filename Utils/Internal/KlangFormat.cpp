@@ -2,7 +2,7 @@
 
 #include <cstring>
 
-#include "Utils/KlangFormat.h"
+#include "Utils/Internal/KlangFormat.h"
 #include "Utils/FileUtils.h"
 
 #define KLANG_VAR_PREFIX "#define"

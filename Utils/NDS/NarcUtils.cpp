@@ -4,7 +4,7 @@
 
 #include "System.h"
 
-#include "Utils/NarcUtils.h"
+#include "Utils/NDS/NarcUtils.h"
 
 struct NarcHeader
 {
@@ -420,7 +420,7 @@ FileStream GetFileFromNARCFileSystem(const string& filesystem, const string& nar
 	Log(INFO, "Loading file %d in NARC %s", fileIdx, fullNarcPath.c_str());
 	if (!PathExists(fullNarcPath))
 	{
-		Log(CRITICAL, "   NARC doesn't exist");
+		Log(WARNING, "   NARC doesn't exist");
 		return FileStream();
 	}
 

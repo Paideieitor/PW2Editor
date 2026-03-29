@@ -3,7 +3,7 @@
 
 #include "System.h"
 
-#include "Utils/KlinFormat.h"
+#include "Utils/Internal/KlinFormat.h"
 #include "Utils/StringUtils.h"
 
 #define KLIN_SEPARATOR ": "

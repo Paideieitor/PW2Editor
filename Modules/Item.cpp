@@ -18,8 +18,10 @@ types(engine->GetTextFile(TYPE_NAME_FILE_ID))
 
 ReturnState Item::RenderGUI()
 {
+    u32 currentItem = engine->project->item;
 	ImGui::Begin("Item");
-	ImGui::Text("Index: " + to_string(engine->project->item));
+	ImGui::Text("Index: " + to_string(currentItem));
+
 	ImGui::Separator();
 
 	ImGui::BeginGroup();
@@ -187,6 +189,22 @@ ReturnState Item::RenderGUI()
 		ITEM_CHECK_BOX(FRIENDSHIP_ADD_3, "Add Friendship 3");
 	}
 	ImGui::EndGroup();
+
+    ImGui::NewLine();
+
+    ImGui::BeginChild("ImageChild", ImVec2(0, 0), ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY |  ImGuiChildFlags_AlwaysAutoResize, ImGuiWindowFlags_None);
+    if (ImGui::BeginTable("ImageTable", 1, ImGuiTableFlags_Borders | ImGuiTableFlags_SizingFixedFit))
+    {
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::Text("Icon");
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        engine->DisplayItemIcon(currentItem, true);
+
+        ImGui::EndTable();
+    }
+    ImGui::EndChild();
 
 	ImGui::End();
 	return OK;
