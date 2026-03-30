@@ -5,6 +5,8 @@
 
 Paint::Paint(string imgPath, string palPath, string imgSavePath, string palSavePath, u32 flags) : texture((ImTextureID)0), update(true), currPalIdx(0), currColor(0), zoom(1.0f), imgSavePath(imgSavePath), palSavePath(palSavePath), saveFlags(flags)
 {
+    selection.x = -1;
+
     FileStream imgStream;
     LoadFileStream(imgStream, imgPath);
     LoadNCGR(imgStream, image, flags);
@@ -15,6 +17,25 @@ Paint::Paint(string imgPath, string palPath, string imgSavePath, string palSaveP
 }
 
 Paint::~Paint() {}
+
+void Paint::BucketSpread(int x, int y, u8 prevCol, u8 col)
+{
+    u32 index = (y * image.width) + x;
+    u8 currCol = image.data[index];
+    if (currCol == prevCol)
+    {
+        paintPoints.emplace_back((PaintPoint){ image.data[index], index });
+        image.data[index] = col;
+        if (x + 1 < image.width)
+            BucketSpread(x + 1, y, prevCol, col);
+        if (x - 1 >= 0)
+            BucketSpread(x - 1, y, prevCol, col);
+        if (y + 1 < image.height)
+            BucketSpread(x, y + 1, prevCol, col);
+        if (y - 1 >= 0)
+            BucketSpread(x, y - 1, prevCol, col);
+    }
+}
 
 ReturnState Paint::RenderGUI()
 {
@@ -53,7 +74,7 @@ ReturnState Paint::RenderGUI()
 
     ColorPalette();
 
-    const char* toolNames[] = { "Brush", "Picker", "Bucket", };
+    const char* toolNames[] = { "Brush", "Picker", "Bucket", "Select" };
     static int toolSelected = (int)TOOL_BRUSH;
 
     if (ImGui::BeginCombo("Tool", toolNames[toolSelected], 0))
@@ -71,7 +92,8 @@ ReturnState Paint::RenderGUI()
     }
 
     ImVec2 pos;
-    bool imgHover = Canvas(pos);
+    ImVec2 canvasPos;
+    bool imgHover = Canvas(canvasPos, pos);
 
     ImGui::Text("Pos: (%d, %d)", (int)pos.x, (int)pos.y);
     u32 index = ((u32)pos.y * image.width) + (u32)pos.x;
@@ -102,6 +124,16 @@ ReturnState Paint::RenderGUI()
                 update = true;
             }
         }
+        else if (toolSelected == TOOL_SELECT)
+        {
+            if (pressState == 0)
+            {
+                selection.x = (u32)pos.x;
+                selection.y = (u32)pos.y;
+            }
+            selection.z = (u32)pos.x;
+            selection.w = (u32)pos.y;
+        }
 
         pressState = 1;
     }
@@ -125,23 +157,51 @@ ReturnState Paint::RenderGUI()
                 }
                 break;
             case TOOL_BUCKET:
+                if (image.data[index] != currColor)
+                {
+                    BucketSpread(pos.x, pos.y, image.data[index], currColor);
+                    AddPaintAction();
+                    update = true;
+                }
                 break;
         }
         pressState = 0;
     }
 
     ImGui::End();
+
+    if (selection.x != -1)
+    {
+        ImDrawList* draw_list = ImGui::GetForegroundDrawList();
+
+        ImVec2 start = canvasPos;
+        start.x += selection.x * zoom;
+        start.y += selection.y * zoom;
+
+        ImVec2 end = canvasPos;
+        end.x += selection.z * zoom;
+        end.y += selection.w * zoom;
+
+        draw_list->AddRect(
+                start,
+                end,
+                IM_COL32(255, 0, 0, 255),   // black border
+                0.0f,
+                0,
+                2.0f                      // thickness
+                );
+    }
     return OK;
 }
 
-bool Paint::Canvas(ImVec2& pos)
+bool Paint::Canvas(ImVec2& canvasPos, ImVec2& pos)
 {
     float zoomPrev = zoom;
     if (ImGui::SliderFloat("Zoom", &zoom, 1.0f, 10.0f) && zoomPrev != zoom)
         AddSelectAction(ZOOM, &zoomPrev);
 
     ImGuiIO& io = ImGui::GetIO();
-    ImVec2 canvasPos = ImGui::GetCursorScreenPos();
+    canvasPos = ImGui::GetCursorScreenPos();
 
     pos.x = (io.MousePos.x - canvasPos.x) / zoom;
     pos.y = (io.MousePos.y - canvasPos.y) / zoom;

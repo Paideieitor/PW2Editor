@@ -29,6 +29,7 @@ enum Tool
     TOOL_BRUSH,
     TOOL_PICKER,
     TOOL_BUCKET,
+    //TOOL_SELECT,
     TOOL_MAX,
 };
 
@@ -42,7 +43,9 @@ protected:
     virtual ReturnState RenderGUI() override;
 
     void ColorPalette();
-    bool Canvas(ImVec2& pos);
+    bool Canvas(ImVec2& canvasPos, ImVec2& pos);
+
+    void BucketSpread(int x, int y, u8 prevCol, u8 col);
 
 private:
     Image image;
@@ -54,6 +57,7 @@ private:
     int currPalIdx;
     int currColor;
     float zoom;
+    ImVec4 selection;
     vector<PaintPoint> paintPoints;
 
     vector<Action> actions;
